@@ -9,15 +9,31 @@ public class Main {
         Board board = new Board();
         System.out.println(board);
 
-        PlayerMove[] opening = new PlayerMove[] {
-                new RegularMove(board.getFromString("d2"), fromString("d2"), fromString("d4")),
-                new RegularMove(board.getFromString("d7"), fromString("d7"), fromString("d5")),
-                new RegularMove(board.getFromString("c1"), fromString("c1"), fromString("f4")),
+        String[] opening = new String[] {
+                "d4",
+                "d5",
+                "Bf4",
+                "c5",
+                "Nf3",
+                "Nc6",
+                "e3",
+                "Bf5",
+                "Nbd2",
+                "e6",
+                "c3",
+                "Bd6",
+                "Bg3",
+                "Nf6",
+                "Qb3",
+                "O-O"
         }; // london system cope harder
 
-        for (PlayerMove move : opening) {
-            board.makeMove(move);
+        for (String move : opening) {
             System.out.println("\n\n");
+            System.out.println(board.getCurrentTurn() + ": " + move);
+            PlayerMove playerMove = board.fromNotation(move);
+            System.out.println(board.isLegalMove(playerMove));
+            board.makeMove(playerMove);
             System.out.println(board);
         }
     }

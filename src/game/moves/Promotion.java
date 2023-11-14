@@ -20,6 +20,11 @@ public final class Promotion extends PlayerMove {
         board[from.rank()][from.file()] = null;
     }
 
+    @Override
+    public boolean isPossible(Piece[][] board) {
+        return super.isPossible(board) && newPiece.type() != PieceType.PAWN && newPiece.type() != PieceType.KING && newPiece.owner() == getPlayer();
+    }
+
     public static Promotion[] allPromotions(Player player, int oldFile, int newFile) {
         return new Promotion[] {
             Promotion.fromFile(player, oldFile, newFile, new Piece(player, PieceType.QUEEN)),
