@@ -6,13 +6,12 @@ import static game.BoardCoordinate.fromString;
 
 public class Main {
     public static void main(String[] args) {
-        Board board = new Board();
+        String FEN = "rnbqkbnr/ppp1pppp/8/3p4/3P1B2/8/PPP1PPPP/RN1QKBNR b KQkq - 1 2";
+        Board board = Board.fromFEN(FEN);
+        System.out.println("Loading FEN: " + FEN);
         System.out.println(board);
 
         String[] opening = new String[] {
-                "d4",
-                "d5",
-                "Bf4",
                 "c5",
                 "Nf3",
                 "Nc6",

@@ -3,7 +3,6 @@ package game;
 import game.moves.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -31,6 +30,8 @@ public class Board {
     private boolean blackShortCastle;
     private boolean blackLongCastle;
 
+    // todo: add halfmove counter: num of moves since last capture/pawn push
+
     public Board(Piece[][] board, Player currentTurn, ArrayList<PlayerMove> moves, boolean whiteShortCastle, boolean whiteLongCastle, boolean blackShortCastle, boolean blackLongCastle) {
         this.board = board;
         this.currentTurn = currentTurn;
@@ -43,6 +44,79 @@ public class Board {
 
     public Board() {
         this(DEFAULT_BOARD, Player.WHITE, new ArrayList<PlayerMove>(), true, true, true, true);
+    }
+
+    public static Board fromFEN(String text) { // todo: implement toFEN method
+        String[] words = text.split("\\s+");
+
+        String boardString = words[0];
+        String[] boardRows = boardString.split("/");
+        Piece[][] board = new Piece[8][8];
+        for (int row = 0; row < boardRows.length; row++) {
+            String boardRow = boardRows[boardRows.length - row - 1];
+            int column = 0;
+            int index = 0;
+            while (column < board[row].length) {
+                char c = boardRow.charAt(index);
+                if (Character.isDigit(c)) {
+                    // number of spaces
+                    int num = c - '0';
+                    column += num;
+                } else {
+                    // piece
+                    board[row][column] = Piece.fromChar(c);
+                    column++;
+                }
+                index++;
+            }
+        }
+        if (words.length == 1) {
+            return new Board(board, Player.WHITE, new ArrayList<PlayerMove>(), true, true, true, true);
+        }
+
+        Player currentPlayer = switch (words[1].charAt(0)) {
+            case 'w' -> {
+                yield Player.WHITE;
+            }
+            case 'b' -> {
+                yield Player.BLACK;
+            }
+            default -> throw new IllegalArgumentException("Invalid Player FEN: " + text);
+        };
+
+        if (words.length == 2) {
+            return new Board(board, currentPlayer, new ArrayList<PlayerMove>(), true, true, true, true);
+        }
+
+        String castlingRights = words[2];
+        boolean whiteShortCastle = castlingRights.contains("K");
+        boolean whiteLongCastle = castlingRights.contains("Q");
+        boolean blackShortCastle = castlingRights.contains("k");
+        boolean blackLongCastle = castlingRights.contains("q");
+
+        if (words.length == 3) {
+            return new Board(board, currentPlayer, new ArrayList<PlayerMove>(), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
+        }
+
+        String enPassant = words[3];
+        ArrayList<PlayerMove> prevMoves = new ArrayList<>();
+        if (!enPassant.equals("-")) {
+            BoardCoordinate possibleCapture = BoardCoordinate.fromString(enPassant);
+            // figure out the previous opponent move
+            Player opponent = currentPlayer.opponent();
+            Piece opponentPawn = new Piece(opponent, PieceType.PAWN);
+            BoardCoordinate opponentPawnFrom = new BoardCoordinate(opponent.pawnRank(), possibleCapture.file());
+            BoardCoordinate opponentPawnTo = switch (opponent) {
+                case WHITE -> opponentPawnFrom.step(2, 0);
+                case BLACK -> opponentPawnFrom.step(-2, 0);
+            };
+            prevMoves.add(new RegularMove(opponentPawn, opponentPawnFrom, opponentPawnTo));
+        }
+
+        int halfMoves = Integer.parseInt(words[4]); // todo: use for 50-move rule
+        int fullMoves = Integer.parseInt(words[5]); // unused
+
+        return new Board(board, currentPlayer, prevMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
     }
 
     public Board copy() {
@@ -165,7 +239,7 @@ public class Board {
         return filter;
     }
 
-    private static final String regex_pattern = "([Oo0]-[Oo0](-[Oo0])?)|((([KQRBN]?[a-h]?[1-8]?x)|([KQRBN][a-h]?[1-8]?))?([a-h][1-8])(=[QRBN])?[+#]?)";
+    private static final String ALGEBRAIC_REGEX_PATTERN = "([Oo0]-[Oo0](-[Oo0])?)|((([KQRBN]?[a-h]?[1-8]?x)|([KQRBN][a-h]?[1-8]?))?([a-h][1-8])(=[QRBN])?[+#]?)";
 
     /**
      * Parses algebraic notation into an array of strings
@@ -182,7 +256,7 @@ public class Board {
      * <p> groups[8] = promotion
      */
     private String[] parseAlgebraicNotation(String text) {
-        Pattern pattern = Pattern.compile(regex_pattern);
+        Pattern pattern = Pattern.compile(ALGEBRAIC_REGEX_PATTERN);
         Matcher matcher = pattern.matcher(text);
         if (!matcher.matches()) throw new IllegalArgumentException("Invalid algebraic notation: " + text);
 
