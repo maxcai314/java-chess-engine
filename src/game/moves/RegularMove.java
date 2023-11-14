@@ -1,4 +1,4 @@
-package moves;
+package game.moves;
 
 import game.*;
 

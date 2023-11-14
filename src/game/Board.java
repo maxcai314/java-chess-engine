@@ -1,6 +1,6 @@
 package game;
 
-import moves.PlayerMove;
+import game.moves.PlayerMove;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +23,7 @@ public class Board {
     private Player currentTurn = Player.WHITE;
     private final ArrayList<PlayerMove> moves;
 
-    // castling rights (revoked when king or rook moves)
+    // castling rights (revoked when king or rook game.moves)
     private boolean whiteShortCastle = true;
     private boolean whiteLongCastle = true;
     private boolean blackShortCastle = true;
@@ -37,6 +37,14 @@ public class Board {
 
     public Board() {
         this(DEFAULT_BOARD, Player.WHITE, new ArrayList<PlayerMove>());
+    }
+
+    public Piece getPiece(BoardCoordinate coordinate) {
+        return board[coordinate.rank()][coordinate.file()];
+    }
+
+    public boolean isEmpty(BoardCoordinate coordinate) {
+        return getPiece(coordinate) == null;
     }
 
     public boolean isLegalMove(PlayerMove move) {
