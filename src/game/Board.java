@@ -113,6 +113,10 @@ public class Board {
             prevMoves.add(new RegularMove(opponentPawn, opponentPawnFrom, opponentPawnTo));
         }
 
+        if (words.length < 5) {
+            return new Board(board, currentPlayer, prevMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
+        }
+
         int halfMoves = Integer.parseInt(words[4]); // todo: use for 50-move rule
         int fullMoves = Integer.parseInt(words[5]); // unused
 
@@ -172,12 +176,27 @@ public class Board {
         }
 
         if (context != null && context.length() == 1) {
-            if ("abcdefgh".contains(context)) { // pawn
+            if ("abcdefgh".contains(context)) { // pawn captures
+                int file = context.charAt(0) - 'a';
                 Piece pawn = new Piece(currentTurn, PieceType.PAWN);
                 List<BoardCoordinate> candidates = isDefendedFrom(destination, pawn);
-                List<BoardCoordinate> possible = candidates.stream().filter(a -> a.file() == destination.file()).toList();
+                List<BoardCoordinate> possible = candidates.stream().filter(a -> a.file() == file).toList();
                 if (possible.isEmpty()) throw new IllegalArgumentException("Invalid pawn position: " + text);
-                else if (possible.size() == 1) return new RegularMove(pawn, possible.get(0), destination);
+                else if (possible.size() == 1) {
+                    Piece opponentPawn = new Piece(currentTurn.opponent(), PieceType.PAWN);
+                    if (get(destination) == null) {
+                        BoardCoordinate enPassant = switch (currentTurn) {
+                            case WHITE -> possible.get(0).step(1, 0);
+                            case BLACK -> possible.get(0).step(-1, 0);
+                        };
+                        if (!opponentPawn.equals(get(enPassant)))
+                            throw new IllegalArgumentException("Invalid pawn capture: " + text);
+                        return EnPassant.enPassant(currentTurn, possible.get(0), destination);
+                    } else if (opponentPawn.equals(get(destination)))
+                        return new RegularMove(pawn, possible.get(0), destination);
+                    else
+                        throw new IllegalArgumentException("Invalid pawn position: " + text);
+                }
                 else throw new IllegalArgumentException("Invalid pawn position: " + text);
             } else {
                 // search for the piece that can move to the destination
@@ -207,17 +226,17 @@ public class Board {
             Piece pawn = new Piece(currentTurn, PieceType.PAWN);
             switch (currentTurn) {
                 case WHITE -> {
-                    if (pawn.equals(get(new BoardCoordinate(2, destination.file()))))
-                        return new RegularMove(pawn, new BoardCoordinate(2, destination.file()), destination);
-                    else if (pawn.equals(get(new BoardCoordinate(1, destination.file()))))
-                        return new RegularMove(pawn, new BoardCoordinate(1, destination.file()), destination);
+                    if (pawn.equals(get(new BoardCoordinate(destination.rank()-1, destination.file()))))
+                        return new RegularMove(pawn, new BoardCoordinate(destination.rank()-1, destination.file()), destination);
+                    else if (pawn.equals(get(new BoardCoordinate(currentTurn.pawnRank(), destination.file()))))
+                        return new RegularMove(pawn, new BoardCoordinate(currentTurn.pawnRank(), destination.file()), destination);
                     else throw new IllegalArgumentException("Invalid pawn position: " + text);
                 }
                 case BLACK -> {
-                    if (pawn.equals(get(new BoardCoordinate(5, destination.file()))))
-                        return new RegularMove(pawn, new BoardCoordinate(5, destination.file()), destination);
-                    else if (pawn.equals(get(new BoardCoordinate(6, destination.file()))))
-                        return new RegularMove(pawn, new BoardCoordinate(6, destination.file()), destination);
+                    if (pawn.equals(get(new BoardCoordinate(destination.rank()+1, destination.file()))))
+                        return new RegularMove(pawn, new BoardCoordinate(destination.rank()+1, destination.file()), destination);
+                    else if (pawn.equals(get(new BoardCoordinate(currentTurn.pawnRank(), destination.file()))))
+                        return new RegularMove(pawn, new BoardCoordinate(currentTurn.pawnRank(), destination.file()), destination);
                     else throw new IllegalArgumentException("Invalid pawn position: " + text);
                 }
             }
@@ -375,14 +394,14 @@ public class Board {
     public boolean isInCheck(Player player) {
         // find location of king
         BoardCoordinate kingLocation;
-        search: {
+        Search: {
             Piece king = new Piece(player, PieceType.KING);
             for (int rank = 0; rank < board.length; rank++) {
                 for (int file = 0; file < board[rank].length; file++) {
                     Piece piece = board[rank][file];
                     if (king.equals(piece)) {
                         kingLocation = new BoardCoordinate(rank, file);
-                        break search;
+                        break Search;
                     }
                 }
             }
@@ -552,6 +571,61 @@ public class Board {
     }
 
     // todo: GameState
+
+    public String toFEN() {
+        StringBuilder builder = new StringBuilder();
+        for (int i= board.length-1;i>=0;i--) {
+            int spaces = 0;
+            for (Piece piece : board[i]) {
+                if (piece == null) spaces++;
+                else {
+                    if (spaces > 0) {
+                        builder.append(spaces);
+                        spaces = 0;
+                    }
+                    builder.append(piece.toChar());
+                }
+            }
+            if (spaces > 0) builder.append(spaces);
+            builder.append("/");
+        }
+        builder.deleteCharAt(builder.length() - 1); // remove last slash
+        builder.append(" ");
+
+        builder.append(switch (currentTurn) {
+            case WHITE -> "w";
+            case BLACK -> "b";
+        }).append(" ");
+
+        if (whiteShortCastle) builder.append("K");
+        if (whiteLongCastle) builder.append("Q");
+        if (blackShortCastle) builder.append("k");
+        if (blackLongCastle) builder.append("q");
+
+        builder.append(" ");
+
+        EnPassant:
+        {
+            if (!moves.isEmpty()) {
+                PlayerMove lastMove = moves.getLast();
+                if (lastMove instanceof RegularMove regularMove) {
+                    if (regularMove.getPiece().type() == PieceType.PAWN && Math.abs(regularMove.getFrom().rank() - regularMove.getTo().rank()) == 2) {
+                        builder.append((char) (regularMove.getTo().file() + 'a')).append(
+                                switch (currentTurn.opponent()) {
+                                    case WHITE -> 3;
+                                    case BLACK -> 6;
+                                }
+                        ).append(" ");
+                        break EnPassant;
+                    }
+                }
+            }
+            builder.append("- ");
+        }
+        builder.append("0 1"); // todo: implement halfmove counter and fullmove counter
+
+        return builder.toString();
+    }
 
     @Override
     public String toString() {
