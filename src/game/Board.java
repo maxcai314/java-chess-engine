@@ -1,6 +1,6 @@
 package game;
 
-import game.moves.PlayerMove;
+import game.moves.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,19 +24,31 @@ public class Board {
     private final ArrayList<PlayerMove> moves;
 
     // castling rights (revoked when king or rook game.moves)
-    private boolean whiteShortCastle = true;
-    private boolean whiteLongCastle = true;
-    private boolean blackShortCastle = true;
-    private boolean blackLongCastle = true;
+    private boolean whiteShortCastle;
+    private boolean whiteLongCastle;
+    private boolean blackShortCastle;
+    private boolean blackLongCastle;
 
-    public Board(Piece[][] board, Player currentTurn, ArrayList<PlayerMove> moves) {
+    public Board(Piece[][] board, Player currentTurn, ArrayList<PlayerMove> moves, boolean whiteShortCastle, boolean whiteLongCastle, boolean blackShortCastle, boolean blackLongCastle) {
         this.board = board;
         this.currentTurn = currentTurn;
         this.moves = moves;
+        this.whiteShortCastle = whiteShortCastle;
+        this.whiteLongCastle = whiteLongCastle;
+        this.blackShortCastle = blackShortCastle;
+        this.blackLongCastle = blackLongCastle;
     }
 
     public Board() {
-        this(DEFAULT_BOARD, Player.WHITE, new ArrayList<PlayerMove>());
+        this(DEFAULT_BOARD, Player.WHITE, new ArrayList<PlayerMove>(), true, true, true, true);
+    }
+
+    public Board copy() {
+        Piece[][] newBoard = new Piece[board.length][];
+        for (int i = 0; i < board.length; i++) {
+            newBoard[i] = board[i].clone();
+        }
+        return new Board(newBoard, currentTurn, new ArrayList<PlayerMove>(moves), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
     }
 
     public Piece getPiece(BoardCoordinate coordinate) {
