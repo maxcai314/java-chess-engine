@@ -32,7 +32,6 @@ public class Main {
             System.out.println("\n\n");
             System.out.println(board.getCurrentTurn() + ": " + move);
             PlayerMove playerMove = board.fromNotation(move);
-            System.out.println(board.isLegalMove(playerMove));
             board.makeMove(playerMove);
             System.out.println(board);
         }

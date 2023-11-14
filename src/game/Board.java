@@ -103,7 +103,7 @@ public class Board {
                 List<BoardCoordinate> candidates = isDefendedFrom(destination, pawn);
                 List<BoardCoordinate> possible = candidates.stream().filter(a -> a.file() == destination.file()).toList();
                 if (possible.isEmpty()) throw new IllegalArgumentException("Invalid pawn position: " + text);
-                else if (possible.size() == 1) return new PlayerMove(pawn, possible.get(0), destination);
+                else if (possible.size() == 1) return new RegularMove(pawn, possible.get(0), destination);
                 else throw new IllegalArgumentException("Invalid pawn position: " + text);
             } else {
                 // search for the piece that can move to the destination
@@ -326,20 +326,18 @@ public class Board {
      */
     private boolean isDefended(BoardCoordinate location, Player opponent) {
         // check for pawns
-        Player player = opponent.opponent();
-        switch (player) {
-            case WHITE -> {
+        Piece opponentPawn = new Piece(opponent, PieceType.PAWN);
+        switch (opponent) {
+            case BLACK -> {
                 // opponent checks from rank + 1
-                Piece opponentPawn = new Piece(Player.BLACK, PieceType.PAWN);
                 BoardCoordinate searchCoord = location.step(1, 1);
                 if (searchCoord.isValid() && opponentPawn.equals(get(searchCoord))) return true;
 
                 searchCoord = location.step(1, -1);
                 if (searchCoord.isValid() && opponentPawn.equals(get(searchCoord))) return true;
             }
-            case BLACK -> {
+            case WHITE -> {
                 // opponent checks from rank - 1
-                Piece opponentPawn = new Piece(Player.WHITE, PieceType.PAWN);
                 BoardCoordinate searchCoord = location.step(-1, 1);
                 if (searchCoord.isValid() && opponentPawn.equals(get(searchCoord))) return true;
 
@@ -404,8 +402,8 @@ public class Board {
     private boolean checkOpponentPattern(BoardCoordinate start, int rankStep, int fileStep, Player opponent, Predicate<Piece> pieceFilter) {
         BoardCoordinate searchCoord = start.step(rankStep, fileStep);
         while (searchCoord.isValid()) {
-            if (get(searchCoord) != null && get(searchCoord).owner() == opponent && pieceFilter.test(get(searchCoord)))
-                return true;
+            if (get(searchCoord) != null)
+                return get(searchCoord).owner() == opponent && pieceFilter.test(get(searchCoord));
 
             searchCoord = searchCoord.step(rankStep, fileStep);
         }
@@ -415,8 +413,8 @@ public class Board {
     private BoardCoordinate findDefendingSquare(BoardCoordinate start, int rankStep, int fileStep, Player opponent, Predicate<Piece> pieceFilter) {
         BoardCoordinate searchCoord = start.step(rankStep, fileStep);
         while (searchCoord.isValid()) {
-            if (get(searchCoord) != null && get(searchCoord).owner() == opponent && pieceFilter.test(get(searchCoord)))
-                return searchCoord;
+            if (get(searchCoord) != null)
+                return get(searchCoord).owner() == opponent && pieceFilter.test(get(searchCoord)) ? searchCoord : null;
 
             searchCoord = searchCoord.step(rankStep, fileStep);
         }
@@ -428,7 +426,7 @@ public class Board {
         if (!move.isPossible(board)) return false;
         Board copy = copy();
         copy.makeMove(move);
-        return copy.isInCheck(currentTurn); // if we are in check after our move, it is illegal
+        return !copy.isInCheck(currentTurn); // if we are in check after our move, it is illegal
     }
 
     public List<PlayerMove> getLegalMoves() {
@@ -484,12 +482,13 @@ public class Board {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
+        builder.append("  _________________\n");
         for (int i=board.length-1;i>=0;i--) { // flip board
             builder.append(i + 1).append("| ");
             for (Piece piece : board[i]) {
                 builder.append(piece == null ? " " : piece.toChar()).append(" ");
             }
-            builder.append("\n");
+            builder.append("|\n");
         }
         builder.append("  -----------------\n")
                 .append("   a b c d e f g h\n");
