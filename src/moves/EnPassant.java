@@ -1,3 +1,7 @@
+package moves;
+
+import game.*;
+
 public final class EnPassant extends PlayerMove {
     private final Piece capturedPawn;
     private final BoardCoordinate capturedPawnCoordinate;

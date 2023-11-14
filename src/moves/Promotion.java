@@ -1,5 +1,9 @@
+package moves;
+
+import game.*;
+
 public final class Promotion extends PlayerMove {
-    Piece newPiece;
+    private final Piece newPiece;
 
     private Promotion(Piece piece, BoardCoordinate from, BoardCoordinate to, Piece newPiece) {
         super(piece, from, to);

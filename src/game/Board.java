@@ -1,3 +1,7 @@
+package game;
+
+import moves.PlayerMove;
+
 import java.util.ArrayList;
 import java.util.List;
 

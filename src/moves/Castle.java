@@ -1,3 +1,7 @@
+package moves;
+
+import game.*;
+
 public final class Castle extends PlayerMove {
     private final Piece rook;
     private final BoardCoordinate rookFrom;

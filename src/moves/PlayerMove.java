@@ -1,3 +1,7 @@
+package moves;
+
+import game.*;
+
 public sealed class PlayerMove permits RegularMove, Castle, EnPassant, Promotion {
     protected final Piece piece;
     protected final BoardCoordinate from;

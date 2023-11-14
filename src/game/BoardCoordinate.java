@@ -1,3 +1,5 @@
+package game;
+
 public record BoardCoordinate(
         int rank,
         int file
