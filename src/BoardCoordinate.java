@@ -1,8 +1,8 @@
 public record BoardCoordinate(
-        int x,
-        int y
+        int rank,
+        int file
 ) {
     public boolean isValid() {
-        return x >= 0 && x < 8 && y >= 0 && y < 8;
+        return rank >= 0 && rank < 8 && file >= 0 && file < 8;
     }
 }
