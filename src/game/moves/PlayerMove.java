@@ -17,6 +17,13 @@ public sealed class PlayerMove permits RegularMove, Castle, EnPassant, Promotion
         board[from.rank()][from.file()] = null;
     }
 
+    /** only checks if the squares are valid */
+    public boolean isPossible(Piece[][] board) {
+        if (!piece.equals(board[from.rank()][from.file()])) return false;
+        Piece destination = board[to.rank()][to.file()];
+        return destination == null || destination.owner() != piece.owner();
+    }
+
     public Piece getPiece() {
         return piece;
     }

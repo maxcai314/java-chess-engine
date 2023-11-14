@@ -35,6 +35,21 @@ public final class Castle extends PlayerMove {
         board[rookFrom.rank()][rookFrom.file()] = null;
     }
 
+    /** Doesn't check if the squares are defended, only if the pieces exist */
+    @Override
+    public boolean isPossible(Piece[][] board) {
+        // check that the two pieces are the same owner
+        Player owner = getPlayer();
+        if (owner != getRook().owner()) return false;
+        // check if the tiles between the rook and king (exclusive) are all null
+        int lower = Math.min(getRookFrom().file(), getFrom().file()) + 1;
+        int higher = Math.max(getRookFrom().file(), getFrom().file());
+        for (int i=lower;i<higher;i++) {
+            if (board[rookFrom.rank()][i] != null) return false;
+        }
+        return true;
+    }
+
     public Piece getRook() {
         return rook;
     }
