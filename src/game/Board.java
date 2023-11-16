@@ -333,41 +333,41 @@ public class Board {
             }
             case BISHOP -> {
                 BoardCoordinate coord = findDefendingSquare(location, 1, 1, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
                 coord = findDefendingSquare(location, 1, -1, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
                 coord = findDefendingSquare(location, -1, 1, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
                 coord = findDefendingSquare(location, -1, -1, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
             }
             case ROOK -> {
                 BoardCoordinate coord = findDefendingSquare(location, 1, 0, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
                 coord = findDefendingSquare(location, -1, 0, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
                 coord = findDefendingSquare(location, 0, 1, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
                 coord = findDefendingSquare(location, 0, -1, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
             }
             case QUEEN -> {
                 BoardCoordinate coord = findDefendingSquare(location, 1, 1, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
                 coord = findDefendingSquare(location, 1, -1, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
                 coord = findDefendingSquare(location, -1, 1, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
                 coord = findDefendingSquare(location, -1, -1, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
                 coord = findDefendingSquare(location, 1, 0, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
                 coord = findDefendingSquare(location, -1, 0, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
                 coord = findDefendingSquare(location, 0, 1, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
                 coord = findDefendingSquare(location, 0, -1, piece.owner(), a -> a.equals(piece));
-                if (coord != null) defendingSquares.add(coord);
+                if (!isEmpty(coord)) defendingSquares.add(coord);
             }
             case KING -> {
                 BoardCoordinate searchCoord = location.step(1, 0);
@@ -495,7 +495,7 @@ public class Board {
     private boolean checkOpponentPattern(BoardCoordinate start, int rankStep, int fileStep, Player opponent, Predicate<Piece> pieceFilter) {
         BoardCoordinate searchCoord = start.step(rankStep, fileStep);
         while (searchCoord.isValid()) {
-            if (get(searchCoord) != null)
+            if (!isEmpty(searchCoord))
                 return get(searchCoord).owner() == opponent && pieceFilter.test(get(searchCoord));
 
             searchCoord = searchCoord.step(rankStep, fileStep);
@@ -506,7 +506,7 @@ public class Board {
     private BoardCoordinate findDefendingSquare(BoardCoordinate start, int rankStep, int fileStep, Player opponent, Predicate<Piece> pieceFilter) {
         BoardCoordinate searchCoord = start.step(rankStep, fileStep);
         while (searchCoord.isValid()) {
-            if (get(searchCoord) != null)
+            if (!isEmpty(searchCoord))
                 return get(searchCoord).owner() == opponent && pieceFilter.test(get(searchCoord)) ? searchCoord : null;
 
             searchCoord = searchCoord.step(rankStep, fileStep);
