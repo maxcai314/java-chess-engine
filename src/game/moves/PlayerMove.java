@@ -2,7 +2,7 @@ package game.moves;
 
 import game.*;
 
-public sealed class PlayerMove permits RegularMove, Castle, EnPassant, Promotion {
+public sealed abstract class PlayerMove permits RegularMove, Castle, EnPassant, Promotion {
     protected final Piece piece;
     protected final BoardCoordinate from;
     protected final BoardCoordinate to;
