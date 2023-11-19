@@ -1,7 +1,17 @@
 package game;
 
 public enum Player {
-    WHITE, BLACK;
+    WHITE(0, 1, 1), BLACK(7, 6, -1);
+
+    private final int homeRank;
+    private final int pawnRank;
+    private final int pawnDirection;
+
+    Player(int homeRank, int pawnRank, int pawnDirection) {
+        this.homeRank = homeRank;
+        this.pawnRank = pawnRank;
+        this.pawnDirection = pawnDirection;
+    }
 
     public Player opponent() {
         return switch (this) {
@@ -11,16 +21,14 @@ public enum Player {
     }
 
     public int homeRank() {
-        return switch (this) {
-            case WHITE -> 0;
-            case BLACK -> 7;
-        };
+        return homeRank;
     }
 
     public int pawnRank() {
-        return switch (this) {
-            case WHITE -> 1;
-            case BLACK -> 6;
-        };
+        return pawnRank;
+    }
+
+    public int pawnDirection() {
+        return pawnDirection;
     }
 }

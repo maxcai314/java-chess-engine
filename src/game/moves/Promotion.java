@@ -4,33 +4,72 @@ import game.*;
 
 public final class Promotion extends PlayerMove {
     private final Piece newPiece;
+    private final Piece oldPiece;
+    private final BoardCoordinate from;
+    private final BoardCoordinate to;
 
-    private Promotion(Piece piece, BoardCoordinate from, BoardCoordinate to, Piece newPiece) {
-        super(piece, from, to);
+    public Promotion(Piece newPiece, Piece oldPiece, BoardCoordinate from, BoardCoordinate to) {
         this.newPiece = newPiece;
+        this.oldPiece = oldPiece;
+        this.from = from;
+        this.to = to;
     }
 
-    public static Promotion fromFile(Player player, int oldFile, int newFile, Piece newPiece) {
-        return new Promotion(new Piece(player, PieceType.PAWN), new BoardCoordinate(player.opponent().pawnRank(), oldFile), new BoardCoordinate(player.opponent().homeRank(), newFile), newPiece);
-    }
-
-    @Override
-    public void makeMove(Piece[][] board) {
-        board[to.rank()][to.file()] = newPiece;
-        board[from.rank()][from.file()] = null;
-    }
-
-    @Override
-    public boolean isPossible(Piece[][] board) {
-        return super.isPossible(board) && newPiece.type() != PieceType.PAWN && newPiece.type() != PieceType.KING && newPiece.owner() == getPlayer();
-    }
-
-    public static Promotion[] allPromotions(Player player, int oldFile, int newFile) {
+    public static Promotion[] allPromotions(Piece piece, BoardCoordinate from, BoardCoordinate to) {
         return new Promotion[] {
-            Promotion.fromFile(player, oldFile, newFile, new Piece(player, PieceType.QUEEN)),
-            Promotion.fromFile(player, oldFile, newFile, new Piece(player, PieceType.ROOK)),
-            Promotion.fromFile(player, oldFile, newFile, new Piece(player, PieceType.BISHOP)),
-            Promotion.fromFile(player, oldFile, newFile, new Piece(player, PieceType.KNIGHT))
+                new Promotion(new Piece(piece.owner(), PieceType.QUEEN), piece, from, to),
+                new Promotion(new Piece(piece.owner(), PieceType.ROOK), piece, from, to),
+                new Promotion(new Piece(piece.owner(), PieceType.BISHOP), piece, from, to),
+                new Promotion(new Piece(piece.owner(), PieceType.KNIGHT), piece, from, to)
         };
+    }
+
+    @Override
+    public void execute(Board board) {
+        board.placePiece(newPiece, to);
+        board.removePiece(from);
+        board.switchTurn();
+    }
+
+    @Override
+    public boolean isPossible(Board board) {
+        if (!from.isValid() || !to.isValid()) return false;
+        if (from.rank() != getPlayer().opponent().pawnRank()) return false;
+        if (to.rank() != getPlayer().opponent().homeRank()) return false;
+        else if (board.pieceAt(to) != null) return false;
+
+        if (oldPiece == null) return false;
+        if (newPiece == null) return false;
+        if (oldPiece.type() != PieceType.PAWN) return false;
+        if (!oldPiece.equals(board.pieceAt(from))) return false;
+        if (oldPiece.owner() != newPiece.owner()) return false;
+        if (newPiece.type() == PieceType.PAWN) return false;
+        if (newPiece.type() == PieceType.KING) return false;
+
+        return true;
+    }
+
+    @Override
+    public Piece getPiece() {
+        return oldPiece;
+    }
+
+    @Override
+    public BoardCoordinate getFrom() {
+        return from;
+    }
+
+    @Override
+    public BoardCoordinate getTo() {
+        return to;
+    }
+
+    @Override
+    public Player getPlayer() {
+        return oldPiece.owner();
+    }
+
+    public Piece getNewPiece() {
+        return newPiece;
     }
 }

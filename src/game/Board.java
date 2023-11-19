@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 public class Board {
     public static final Piece[][] DEFAULT_BOARD = new Piece[][] {
@@ -22,16 +23,17 @@ public class Board {
 
     private final Piece[][] board;
     private Player currentTurn;
-    private final ArrayList<PlayerMove> moves;
+    private final ArrayList<PlayerMove> moves; // todo: make a moverecord
 
     // castling rights (revoked when king or rook game.moves)
-    private boolean whiteShortCastle;
-    private boolean whiteLongCastle;
-    private boolean blackShortCastle;
-    private boolean blackLongCastle;
+    public boolean whiteShortCastle;
+    public boolean whiteLongCastle;
+    public boolean blackShortCastle;
+    public boolean blackLongCastle;
 
     // todo: add halfmove counter: num of moves since last capture/pawn push
 
+    // todo: update constructor too
     public Board(Piece[][] board, Player currentTurn, ArrayList<PlayerMove> moves, boolean whiteShortCastle, boolean whiteLongCastle, boolean blackShortCastle, boolean blackLongCastle) {
         this.board = board;
         this.currentTurn = currentTurn;
@@ -44,6 +46,14 @@ public class Board {
 
     public Board() {
         this(DEFAULT_BOARD, Player.WHITE, new ArrayList<PlayerMove>(), true, true, true, true);
+    }
+
+    public void switchTurn() {
+        currentTurn = currentTurn.opponent();
+    }
+
+    public Player currentTurn() {
+        return currentTurn;
     }
 
     public static Board fromFEN(String text) { // todo: implement toFEN method
@@ -80,7 +90,7 @@ public class Board {
             }
             case 'b' -> {
                 yield Player.BLACK;
-            }
+            } // todo: make Player.fromChar();
             default -> throw new IllegalArgumentException("Invalid Player FEN: " + text);
         };
 
@@ -123,7 +133,7 @@ public class Board {
         return new Board(board, currentPlayer, prevMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
     }
 
-    public Board copy() {
+    public Board copy() { // todo: update
         Piece[][] newBoard = new Piece[board.length][];
         for (int i = 0; i < board.length; i++) {
             newBoard[i] = board[i].clone();
@@ -131,8 +141,16 @@ public class Board {
         return new Board(newBoard, currentTurn, new ArrayList<PlayerMove>(moves), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
     }
 
-    public Piece get(BoardCoordinate coordinate) {
+    public Piece pieceAt(BoardCoordinate coordinate) {
         return board[coordinate.rank()][coordinate.file()];
+    }
+
+    public void placePiece(Piece piece, BoardCoordinate coordinate) {
+        board[coordinate.rank()][coordinate.file()] = piece;
+    }
+
+    public void removePiece(BoardCoordinate coordinate) {
+        board[coordinate.rank()][coordinate.file()] = null;
     }
 
     public Player getCurrentTurn() {
@@ -169,9 +187,9 @@ public class Board {
             PieceType type = PieceType.fromChar(promotion.charAt(1));
             Piece piece = new Piece(currentTurn, type);
             if (context != null) {
-                return Promotion.fromFile(currentTurn, context.charAt(0) - 'a', destination.file(), piece);
+                return new Promotion(piece, new Piece(currentTurn, PieceType.PAWN), new BoardCoordinate(currentTurn.opponent().pawnRank(), context.charAt(0) - 'a'), destination);
             } else {
-                return Promotion.fromFile(currentTurn, destination.file(), destination.file(), piece);
+                return new Promotion(piece, new Piece(currentTurn, PieceType.PAWN), new BoardCoordinate(currentTurn.opponent().homeRank(), destination.file()), destination);
             }
         }
 
@@ -179,79 +197,71 @@ public class Board {
             if ("abcdefgh".contains(context)) { // pawn captures
                 int file = context.charAt(0) - 'a';
                 Piece pawn = new Piece(currentTurn, PieceType.PAWN);
-                List<BoardCoordinate> candidates = isDefendedFrom(destination, pawn);
-                List<BoardCoordinate> possible = candidates.stream().filter(a -> a.file() == file).toList();
-                if (possible.isEmpty()) throw new IllegalArgumentException("Invalid pawn position: " + text);
-                else if (possible.size() == 1) {
-                    Piece opponentPawn = new Piece(currentTurn.opponent(), PieceType.PAWN);
-                    if (get(destination) == null) {
-                        BoardCoordinate enPassant = switch (currentTurn) {
-                            case WHITE -> possible.get(0).step(1, 0);
-                            case BLACK -> possible.get(0).step(-1, 0);
-                        };
-                        if (!opponentPawn.equals(get(enPassant)))
-                            throw new IllegalArgumentException("Invalid pawn capture: " + text);
-                        return EnPassant.enPassant(currentTurn, possible.get(0), destination);
-                    } else if (opponentPawn.equals(get(destination)))
-                        return new RegularMove(pawn, possible.get(0), destination);
-                    else
-                        throw new IllegalArgumentException("Invalid pawn position: " + text);
+                ArrayList<PlayerMove> candidates = new ArrayList<>(findAttacksOnCoordinate(pawn, destination));
+
+                // add en passant if it exists
+                if (!moves.isEmpty() && moves.get(moves.size() - 1) instanceof RegularMove lastMove) {
+                    if (lastMove.getPiece().type() == PieceType.PAWN && lastMove.getFrom().file() == file) {
+                        BoardCoordinate enPassant = lastMove.getFrom().step(currentTurn.pawnDirection(), 0);
+                        BoardCoordinate capturedPawn = enPassant.step(currentTurn.opponent().pawnDirection(), 0);
+                        if (enPassant.equals(destination) && isEmpty(capturedPawn) && pieceAt(enPassant).equals(new Piece(currentTurn.opponent(), PieceType.PAWN))) {
+                            candidates.add(EnPassant.enPassant(currentTurn, lastMove.getFrom(), destination));
+                        }
+                    }
                 }
-                else throw new IllegalArgumentException("Invalid pawn position: " + text);
+
+                List<PlayerMove> possible = candidates.stream()
+                        .filter(a -> a.getFrom().file() == file)
+                        .toList(); // todo: find stream operation to findFirst, and throw if none or more than one
+
+                if (possible.isEmpty()) throw new IllegalArgumentException("Invalid pawn position: " + text);
+                else if (possible.size() == 1) return possible.getFirst();
+                else throw new IllegalArgumentException("Ambiguous pawn capture: " + text);
             } else {
+                // piece type specified
                 // search for the piece that can move to the destination
                 PieceType type = PieceType.fromChar(context.charAt(0));
                 Piece piece = new Piece(currentTurn, type);
-                List<BoardCoordinate> candidates = isDefendedFrom(destination, piece);
+                List<PlayerMove> candidates = findAttacksOnCoordinate(piece, destination);
                 if (candidates.isEmpty()) throw new IllegalArgumentException("Invalid piece position: " + text);
-                else if (candidates.size() == 1) return new RegularMove(piece, candidates.get(0), destination);
+                else if (candidates.size() == 1) return candidates.getFirst();
                 else throw new IllegalArgumentException("Invalid piece position: " + text);
             }
         } else if (context != null && context.length() == 2) { // piece with one axis specified
             PieceType type = PieceType.fromChar(context.charAt(0));
-            Predicate<BoardCoordinate> filter = getBoardCoordinateFilter(context);
+            Predicate<PlayerMove> filter = moveFilter(context);
             Piece piece = new Piece(currentTurn, type);
-            List<BoardCoordinate> candidates = isDefendedFrom(destination, piece);
-            List<BoardCoordinate> possible = candidates.stream().filter(filter).toList();
+            List<PlayerMove> candidates = findAttacksOnCoordinate(piece, destination);
+            List<PlayerMove> possible = candidates.stream().filter(filter).toList();
             if (possible.isEmpty()) throw new IllegalArgumentException("Invalid piece position: " + text);
-            else if (possible.size() == 1) return new RegularMove(piece, possible.get(0), destination);
+            else if (possible.size() == 1) return possible.getFirst();
             else throw new IllegalArgumentException("Invalid piece position: " + text);
         } else if (context != null && context.length() == 3) { // piece with both axes specified
             PieceType type = PieceType.fromChar(context.charAt(0));
             Piece piece = new Piece(currentTurn, type);
             BoardCoordinate location = BoardCoordinate.fromString(context.substring(1));
-            if (piece.equals(get(location))) return new RegularMove(piece, location, destination);
+            if (piece.equals(pieceAt(location))) return new RegularMove(piece, location, destination);
             else throw new IllegalArgumentException("Invalid piece position: " + text);
         } else { // don't use context, pawn pushes only
             Piece pawn = new Piece(currentTurn, PieceType.PAWN);
-            switch (currentTurn) {
-                case WHITE -> {
-                    if (pawn.equals(get(new BoardCoordinate(destination.rank()-1, destination.file()))))
-                        return new RegularMove(pawn, new BoardCoordinate(destination.rank()-1, destination.file()), destination);
-                    else if (pawn.equals(get(new BoardCoordinate(currentTurn.pawnRank(), destination.file()))))
-                        return new RegularMove(pawn, new BoardCoordinate(currentTurn.pawnRank(), destination.file()), destination);
-                    else throw new IllegalArgumentException("Invalid pawn position: " + text);
-                }
-                case BLACK -> {
-                    if (pawn.equals(get(new BoardCoordinate(destination.rank()+1, destination.file()))))
-                        return new RegularMove(pawn, new BoardCoordinate(destination.rank()+1, destination.file()), destination);
-                    else if (pawn.equals(get(new BoardCoordinate(currentTurn.pawnRank(), destination.file()))))
-                        return new RegularMove(pawn, new BoardCoordinate(currentTurn.pawnRank(), destination.file()), destination);
-                    else throw new IllegalArgumentException("Invalid pawn position: " + text);
-                }
-            }
+            BoardCoordinate singleStepFrom = destination.step(-1 * currentTurn.pawnDirection(), 0);
+            BoardCoordinate doubleStepFrom = destination.step(-2 * currentTurn.pawnDirection(), 0);
+            if (pawn.equals(pieceAt(singleStepFrom)))
+                return new RegularMove(pawn, singleStepFrom, destination);
+            else if (currentTurn.pawnRank() == doubleStepFrom.rank() && pieceAt(singleStepFrom) == null && pawn.equals(pieceAt(doubleStepFrom)))
+                return new RegularMove(pawn, new BoardCoordinate(currentTurn.pawnRank(), destination.file()), destination);
+            else throw new IllegalArgumentException("Invalid pawn position: " + text);
         }
-        throw new IllegalArgumentException("Invalid algebraic notation: " + text); // temporary
     }
 
-    private static Predicate<BoardCoordinate> getBoardCoordinateFilter(String context) {
-        Predicate<BoardCoordinate> filter;
+    private static Predicate<PlayerMove> moveFilter(String context) {
+        Predicate<PlayerMove> filter;
         if ("abcdefgh".contains(context.substring(1))) { // rank specified
             int file = context.charAt(1) - 'a';
-            filter = a -> a.file() == file;
+            filter = a -> a.getFrom().file() == file;
         } else if ("12345678".contains(context.substring(1))) { // file specified
             int rank = context.charAt(1) - '1';
-            filter = a -> a.rank() == rank;
+            filter = a -> a.getFrom().rank() == rank;
         } else {
             throw new IllegalArgumentException("Invalid context string: " + context);
         }
@@ -288,238 +298,164 @@ public class Board {
     }
 
     public boolean isEmpty(BoardCoordinate coordinate) {
-        return get(coordinate) == null;
-    } // todo: replace == null and != null with this
+        return pieceAt(coordinate) == null;
+    }
+
+    private static final List<BoardCoordinate> DIAGONAL_STEPS = List.of(
+            new BoardCoordinate(1, 1),
+            new BoardCoordinate(1, -1),
+            new BoardCoordinate(-1, 1),
+            new BoardCoordinate(-1, -1)
+    );
+
+    private static final List<BoardCoordinate> ORTHOGONAL_STEPS = List.of(
+            new BoardCoordinate(1, 0),
+            new BoardCoordinate(0, 1),
+            new BoardCoordinate(-1, 0),
+            new BoardCoordinate(0, -1)
+    );
+
+    private static final List<BoardCoordinate> ALL_STEPS = List.of(
+            new BoardCoordinate(1, 1),
+            new BoardCoordinate(1, 0),
+            new BoardCoordinate(1, -1),
+            new BoardCoordinate(0, 1),
+            new BoardCoordinate(0, -1),
+            new BoardCoordinate(-1, 1),
+            new BoardCoordinate(-1, 0),
+            new BoardCoordinate(-1, -1)
+    );
+
+    private static final List<BoardCoordinate> KNIGHT_STEPS = List.of(
+            new BoardCoordinate(2, 1),
+            new BoardCoordinate(2, -1),
+            new BoardCoordinate(-2, 1),
+            new BoardCoordinate(-2, -1),
+            new BoardCoordinate(1, 2),
+            new BoardCoordinate(1, -2),
+            new BoardCoordinate(-1, 2),
+            new BoardCoordinate(-1, -2)
+    );
 
     /**
-     * Finds the square which contains the opponent piece that attacks/defends the given square.
+     * Gets the hypothetical moves a piece could make if it were of the input type and at the input position
      */
-    private List<BoardCoordinate> isDefendedFrom(BoardCoordinate location, Piece piece) {
-        ArrayList<BoardCoordinate> defendingSquares = new ArrayList<>();
-        switch (piece.type()) {
-            case PAWN -> {
-                Player pieceOwner = piece.owner();
-                switch (pieceOwner) {
-                    case BLACK -> {
-                        // black attacks from rank + 1
-                        BoardCoordinate searchCoord = location.step(1, 1);
-                        if (searchCoord.isValid() && piece.equals(get(searchCoord))) defendingSquares.add(searchCoord);
+    private List<PlayerMove> attacksWithPiece(Piece piece, BoardCoordinate position) {
+        return switch (piece.type()) {
+            case PAWN ->
+                    Stream.of(1, -1)
+                        .map(a -> position.step(piece.owner().pawnDirection(), a))
+                        .filter(BoardCoordinate::isValid)
+                        .flatMap(a ->
+                            a.rank() == piece.owner().opponent().homeRank() ?
+                                Stream.of(Promotion.allPromotions(piece, position, a)) :
+                                Stream.of(new RegularMove(piece, position, a)
+                        ))
+                        .toList();
 
-                        searchCoord = location.step(1, -1);
-                        if (searchCoord.isValid() && piece.equals(get(searchCoord))) defendingSquares.add(searchCoord);
-                    }
-                    case WHITE -> {
-                        // white attacks from rank - 1
-                        BoardCoordinate searchCoord = location.step(-1, 1);
-                        if (searchCoord.isValid() && piece.equals(get(searchCoord))) defendingSquares.add(searchCoord);
+            case KNIGHT ->
+                    KNIGHT_STEPS.stream()
+                        .map(position::step)
+                        .filter(BoardCoordinate::isValid)
+                        .filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
+                        .map(a -> (PlayerMove) new RegularMove(piece, position, a))
+                        .toList();
 
-                        searchCoord = location.step(-1, -1);
-                        if (searchCoord.isValid() && piece.equals(get(searchCoord))) defendingSquares.add(searchCoord);
-                    }
-                }
-            }
-            case KNIGHT -> {
-                for (int i = 1; i <= 2; i++) {
-                    int j = 3 - i;
-                    if (location.step(i, j).isValid() && piece.equals(get(location.step(i, j))))
-                        defendingSquares.add(location.step(i, j));
-                    if (location.step(i, -j).isValid() && piece.equals(get(location.step(i, -j))))
-                        defendingSquares.add(location.step(i, -j));
-                    if (location.step(-i, j).isValid() && piece.equals(get(location.step(-i, j))))
-                        defendingSquares.add(location.step(-i, j));
-                    if (location.step(-i, -j).isValid() && piece.equals(get(location.step(-i, -j))))
-                        defendingSquares.add(location.step(-i, -j));
-                }
-            }
-            case BISHOP -> {
-                BoardCoordinate coord = findDefendingSquare(location, 1, 1, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-                coord = findDefendingSquare(location, 1, -1, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-                coord = findDefendingSquare(location, -1, 1, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-                coord = findDefendingSquare(location, -1, -1, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-            }
-            case ROOK -> {
-                BoardCoordinate coord = findDefendingSquare(location, 1, 0, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-                coord = findDefendingSquare(location, -1, 0, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-                coord = findDefendingSquare(location, 0, 1, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-                coord = findDefendingSquare(location, 0, -1, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-            }
-            case QUEEN -> {
-                BoardCoordinate coord = findDefendingSquare(location, 1, 1, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-                coord = findDefendingSquare(location, 1, -1, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-                coord = findDefendingSquare(location, -1, 1, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-                coord = findDefendingSquare(location, -1, -1, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-                coord = findDefendingSquare(location, 1, 0, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-                coord = findDefendingSquare(location, -1, 0, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-                coord = findDefendingSquare(location, 0, 1, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-                coord = findDefendingSquare(location, 0, -1, piece.owner(), a -> a.equals(piece));
-                if (!isEmpty(coord)) defendingSquares.add(coord);
-            }
-            case KING -> {
-                BoardCoordinate searchCoord = location.step(1, 0);
-                if (searchCoord.isValid() && piece.equals(get(searchCoord))) defendingSquares.add(searchCoord);
-                searchCoord = location.step(1, 1);
-                if (searchCoord.isValid() && piece.equals(get(searchCoord))) defendingSquares.add(searchCoord);
-                searchCoord = location.step(0, 1);
-                if (searchCoord.isValid() && piece.equals(get(searchCoord))) defendingSquares.add(searchCoord);
-                searchCoord = location.step(-1, 1);
-                if (searchCoord.isValid() && piece.equals(get(searchCoord))) defendingSquares.add(searchCoord);
-                searchCoord = location.step(-1, 0);
-                if (searchCoord.isValid() && piece.equals(get(searchCoord))) defendingSquares.add(searchCoord);
-                searchCoord = location.step(-1, -1);
-                if (searchCoord.isValid() && piece.equals(get(searchCoord))) defendingSquares.add(searchCoord);
-                searchCoord = location.step(0, -1);
-                if (searchCoord.isValid() && piece.equals(get(searchCoord))) defendingSquares.add(searchCoord);
-                searchCoord = location.step(1, -1);
-                if (searchCoord.isValid() && piece.equals(get(searchCoord))) defendingSquares.add(searchCoord);
-            }
-        }
-        return defendingSquares;
+            case KING ->
+                    ALL_STEPS.stream()
+                        .map(position::step)
+                        .filter(BoardCoordinate::isValid)
+                        .filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
+                        .map(a -> (PlayerMove) new RegularMove(piece, position, a))
+                        .toList();
+
+            case BISHOP ->
+                    DIAGONAL_STEPS.stream()
+                        .flatMap(step -> {
+                            ArrayList<BoardCoordinate> candidates = new ArrayList<>();
+                                for (BoardCoordinate candidate = position.step(step); candidate.isValid(); candidate = candidate.step(step)) {
+                                    candidates.add(candidate);
+                                    if (!isEmpty(candidate)) break;
+                                }
+                            return candidates.stream();
+                        })
+                        .filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
+                        .map(a -> (PlayerMove) new RegularMove(piece, position, a))
+                        .toList();
+
+            case ROOK ->
+                    ORTHOGONAL_STEPS.stream()
+                        .flatMap(step -> {
+                            ArrayList<BoardCoordinate> candidates = new ArrayList<>();
+                            for (BoardCoordinate candidate = position.step(step); candidate.isValid(); candidate = candidate.step(step)) {
+                            candidates.add(candidate);
+                            if (!isEmpty(candidate)) break;
+                            }
+                            return candidates.stream();
+                        })
+                        .filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
+                        .map(a -> (PlayerMove) new RegularMove(piece, position, a))
+                        .toList();
+
+            case QUEEN ->
+                    ALL_STEPS.stream()
+                        .flatMap(step -> {
+                            ArrayList<BoardCoordinate> candidates = new ArrayList<>();
+                            for (BoardCoordinate candidate = position.step(step); candidate.isValid(); candidate = candidate.step(step)) {
+                                candidates.add(candidate);
+                                if (!isEmpty(candidate)) break;
+                            }
+                            return candidates.stream();
+                        })
+                        .filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
+                        .map(a -> (PlayerMove) new RegularMove(piece, position, a))
+                        .toList();
+        };
+    }
+
+    /**
+     * Gets the hypothetical moves a piece could make from another square to attack the input position
+     */
+    private List<PlayerMove> findAttacksOnCoordinate(Piece piece, BoardCoordinate position) {
+        Piece enemy = new Piece(piece.owner().opponent(), piece.type());
+        return attacksWithPiece(enemy, position)
+                .stream()
+                .filter(a -> a instanceof RegularMove) // promotions can't become attacks
+                .filter(a -> piece.equals(pieceAt(a.getTo())))
+                .map(a -> (PlayerMove) new RegularMove(piece, a.getTo(), a.getFrom())) // reverse move
+                .toList();
+    }
+
+    private static final PieceType[] ATTACKING_PIECES = new PieceType[] {
+            PieceType.PAWN,
+            PieceType.KNIGHT,
+            PieceType.BISHOP,
+            PieceType.ROOK,
+            PieceType.QUEEN
+    };
+
+    /**
+     * Determines whether a given square is defended by the opponent
+     */
+    public boolean isDefendedBy(Player opponent, BoardCoordinate position) {
+        // strategy: replace the position square with a piece of any type, and see if it attacks an opponent piece of the same type
+        Player player = opponent.opponent();
+        return Stream.of(ATTACKING_PIECES)
+                .flatMap(pieceType -> attacksWithPiece(new Piece(player, pieceType), position).stream())
+                .anyMatch(move -> pieceAt(move.getTo()) != null && move.getPiece().type() == pieceAt(move.getTo()).type());
     }
 
     public boolean isInCheck(Player player) {
-        // find location of king
-        BoardCoordinate kingLocation;
-        Search: {
-            Piece king = new Piece(player, PieceType.KING);
-            for (int rank = 0; rank < board.length; rank++) {
-                for (int file = 0; file < board[rank].length; file++) {
-                    Piece piece = board[rank][file];
-                    if (king.equals(piece)) {
-                        kingLocation = new BoardCoordinate(rank, file);
-                        break Search;
-                    }
+        // find king
+        Piece king = new Piece(player, PieceType.KING);
+        for (int rank = 0; rank < board.length; rank++) {
+            for (int file = 0; file < board[rank].length; file++) {
+                if (king.equals(board[rank][file])) {
+                    return isDefendedBy(player.opponent(), new BoardCoordinate(rank, file));
                 }
             }
-            return false;
         }
-
-        return isDefended(kingLocation, player.opponent());
-    }
-
-    /**
-     * Checks if the given king is defended by the given opponent.
-     * @param location The square to check if defended
-     * @param opponent The opponent to check for
-     * @return Whether the given square is defended by the given opponent
-     */
-    private boolean isDefended(BoardCoordinate location, Player opponent) {
-        // check for pawns
-        Piece opponentPawn = new Piece(opponent, PieceType.PAWN);
-        switch (opponent) {
-            case BLACK -> {
-                // opponent checks from rank + 1
-                BoardCoordinate searchCoord = location.step(1, 1);
-                if (searchCoord.isValid() && opponentPawn.equals(get(searchCoord))) return true;
-
-                searchCoord = location.step(1, -1);
-                if (searchCoord.isValid() && opponentPawn.equals(get(searchCoord))) return true;
-            }
-            case WHITE -> {
-                // opponent checks from rank - 1
-                BoardCoordinate searchCoord = location.step(-1, 1);
-                if (searchCoord.isValid() && opponentPawn.equals(get(searchCoord))) return true;
-
-                searchCoord = location.step(-1, -1);
-                if (searchCoord.isValid() && opponentPawn.equals(get(searchCoord))) return true;
-            }
-        }
-
-        // check for knights
-        Piece opponentPiece = new Piece(opponent, PieceType.KNIGHT);
-        for (int i = 1; i <= 2; i++) {
-            int j = 3 - i;
-            if (location.step(i, j).isValid() && opponentPiece.equals(get(location.step(i, j))))
-                return true;
-            if (location.step(i, -j).isValid() && opponentPiece.equals(get(location.step(i, -j))))
-                return true;
-            if (location.step(-i, j).isValid() && opponentPiece.equals(get(location.step(-i, j))))
-                return true;
-            if (location.step(-i, -j).isValid() && opponentPiece.equals(get(location.step(-i, -j))))
-                return true;
-        }
-
-        // check diagonals for opponent bishops and queens
-        if (checkOpponentPattern(
-                location, 1, 1, opponent,
-                Piece::attacksDiagonally
-        )) return true;
-        if (checkOpponentPattern(
-                location, 1, -1, opponent,
-                Piece::attacksDiagonally
-        )) return true;
-        if (checkOpponentPattern(
-                location, -1, 1, opponent,
-                Piece::attacksDiagonally
-        )) return true;
-        if (checkOpponentPattern(
-                location, -1, -1, opponent,
-                Piece::attacksDiagonally
-        )) return true;
-
-        // check ranks and files for opponent rooks and queens
-        if (checkOpponentPattern(
-                location, 1, 0, opponent,
-                Piece::attacksOrthogonally
-        )) return true;
-        if (checkOpponentPattern(
-                location, -1, 0, opponent,
-                Piece::attacksOrthogonally
-        )) return true;
-        if (checkOpponentPattern(
-                location, 0, 1, opponent,
-                Piece::attacksOrthogonally
-        )) return true;
-        if (checkOpponentPattern(
-                location, 0, -1, opponent,
-                Piece::attacksOrthogonally
-        )) return true;
-
-        return false;
-    }
-
-    private boolean checkOpponentPattern(BoardCoordinate start, int rankStep, int fileStep, Player opponent, Predicate<Piece> pieceFilter) {
-        BoardCoordinate searchCoord = start.step(rankStep, fileStep);
-        while (searchCoord.isValid()) {
-            if (!isEmpty(searchCoord))
-                return get(searchCoord).owner() == opponent && pieceFilter.test(get(searchCoord));
-
-            searchCoord = searchCoord.step(rankStep, fileStep);
-        }
-        return false;
-    }
-
-    private BoardCoordinate findDefendingSquare(BoardCoordinate start, int rankStep, int fileStep, Player opponent, Predicate<Piece> pieceFilter) {
-        BoardCoordinate searchCoord = start.step(rankStep, fileStep);
-        while (searchCoord.isValid()) {
-            if (!isEmpty(searchCoord))
-                return get(searchCoord).owner() == opponent && pieceFilter.test(get(searchCoord)) ? searchCoord : null;
-
-            searchCoord = searchCoord.step(rankStep, fileStep);
-        }
-        return null;
-    }
-
-    public boolean isLegalMove(PlayerMove move) {
-        if (move.getPlayer() != currentTurn) return false;
-        if (!move.isPossible(board)) return false;
-        Board copy = copy();
-        copy.makeMove(move);
-        return !copy.isInCheck(currentTurn); // if we are in check after our move, it is illegal
+        throw new IllegalStateException("King not found");
     }
 
     public List<PlayerMove> getLegalMoves() {
@@ -527,21 +463,21 @@ public class Board {
         return null;
     }
 
-    private boolean hasCastlingRights(Player player) {
+    public boolean hasCastlingRights(Player player) {
         return switch (player) {
             case WHITE -> whiteShortCastle || whiteLongCastle;
             case BLACK -> blackShortCastle || blackLongCastle;
         };
     }
 
-    private void revokeLongCastle(Player player) {
+    public void revokeLongCastle(Player player) {
         switch (player) {
             case WHITE -> whiteLongCastle = false;
             case BLACK -> blackLongCastle = false;
         }
     }
 
-    private void revokeShortCastle(Player player) {
+    public void revokeShortCastle(Player player) {
         switch (player) {
             case WHITE -> whiteShortCastle = false;
             case BLACK -> blackShortCastle = false;
@@ -549,25 +485,8 @@ public class Board {
     }
 
     public void makeMove(PlayerMove move) {
-        move.makeMove(board);
+        move.execute(this);
         moves.add(move);
-
-        // revoke castling rights
-        if (hasCastlingRights(currentTurn)) {
-            Piece king = new Piece(currentTurn, PieceType.KING);
-            Piece rook = new Piece(currentTurn, PieceType.ROOK);
-            BoardCoordinate longCastleRook = new BoardCoordinate(currentTurn.homeRank(), 0);
-            BoardCoordinate shortCastleRook = new BoardCoordinate(currentTurn.homeRank(), 7);
-            if (king.equals(move.getPiece())) { // king moves, including castling
-                revokeShortCastle(currentTurn);
-                revokeLongCastle(currentTurn);
-            } else if (rook.equals(move.getPiece())) { // individual rook moves
-                if (move.getFrom().equals(longCastleRook)) revokeLongCastle(currentTurn);
-                else if (move.getFrom().equals(shortCastleRook)) revokeShortCastle(currentTurn);
-            }
-        }
-
-        currentTurn = currentTurn.opponent();
     }
 
     // todo: GameState

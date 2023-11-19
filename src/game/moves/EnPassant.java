@@ -3,11 +3,16 @@ package game.moves;
 import game.*;
 
 public final class EnPassant extends PlayerMove {
+    private final Piece pawn;
+    private final BoardCoordinate from;
+    private final BoardCoordinate to;
     private final Piece capturedPawn;
     private final BoardCoordinate capturedPawnCoordinates;
 
     private EnPassant(Piece pawn, BoardCoordinate from, BoardCoordinate to, Piece capturedPawn, BoardCoordinate capturedPawnCoordinates) {
-        super(pawn, from, to);
+        this.pawn = pawn;
+        this.from = from;
+        this.to = to;
         this.capturedPawn = capturedPawn;
         this.capturedPawnCoordinates = capturedPawnCoordinates;
     }
@@ -17,18 +22,43 @@ public final class EnPassant extends PlayerMove {
     }
 
     @Override
-    public void makeMove(Piece[][] board) {
-        super.makeMove(board);
-        board[capturedPawnCoordinates.rank()][capturedPawnCoordinates.file()] = null;
+    public void execute(Board board) {
+        board.placePiece(pawn, to);
+        board.removePiece(from);
+        board.removePiece(capturedPawnCoordinates);
     }
 
     @Override
-    public boolean isPossible(Piece[][] board) {
-        if (!capturedPawn.equals(board[capturedPawnCoordinates.rank()][capturedPawnCoordinates.file()]))
-            return false;
-        if (board[getTo().rank()][getTo().file()] != null)
-            return false;
-        return super.isPossible(board);
+    public boolean isPossible(Board board) {
+        if (!from.isValid() || !to.isValid()) return false;
+        else if (board.pieceAt(to) != null) return false;
+
+        if (pawn == null || pawn.type() != PieceType.PAWN) return false;
+        if (capturedPawn == null || capturedPawn.type() != PieceType.PAWN) return false;
+        if (!pawn.equals(board.pieceAt(from))) return false;
+        if (!capturedPawn.equals(board.pieceAt(capturedPawnCoordinates))) return false;
+        if (getPlayer().opponent() != capturedPawn.owner()) return false;
+        return true;
+    }
+
+    @Override
+    public Piece getPiece() {
+        return pawn;
+    }
+
+    @Override
+    public BoardCoordinate getFrom() {
+        return from;
+    }
+
+    @Override
+    public BoardCoordinate getTo() {
+        return to;
+    }
+
+    @Override
+    public Player getPlayer() {
+        return pawn.owner();
     }
 
     public Piece getCapturedPawn() {

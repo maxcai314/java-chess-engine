@@ -2,41 +2,18 @@ package game.moves;
 
 import game.*;
 
-public sealed abstract class PlayerMove permits RegularMove, Castle, EnPassant, Promotion {
-    protected final Piece piece;
-    protected final BoardCoordinate from;
-    protected final BoardCoordinate to;
-    public PlayerMove(Piece piece, BoardCoordinate from, BoardCoordinate to) {
-        this.piece = piece;
-        this.from = from;
-        this.to = to;
-    }
+public sealed abstract class PlayerMove implements BoardCommand permits RegularMove, Castle, EnPassant, Promotion {
 
-    public void makeMove(Piece[][] board) {
-        board[to.rank()][to.file()] = board[from.rank()][from.file()];
-        board[from.rank()][from.file()] = null;
-    }
+    @Override
+    public abstract void execute(Board board);
 
-    /** only checks if the squares are valid */
-    public boolean isPossible(Piece[][] board) {
-        if (!piece.equals(board[from.rank()][from.file()])) return false;
-        Piece destination = board[to.rank()][to.file()];
-        return destination == null || destination.owner() != piece.owner();
-    }
+    public abstract boolean isPossible(Board board);
 
-    public Piece getPiece() {
-        return piece;
-    }
+    public abstract Piece getPiece();
 
-    public BoardCoordinate getFrom() {
-        return from;
-    }
+    public abstract BoardCoordinate getFrom();
 
-    public BoardCoordinate getTo() {
-        return to;
-    }
+    public abstract BoardCoordinate getTo();
 
-    public Player getPlayer() {
-        return piece.owner();
-    }
+    public abstract Player getPlayer();
 }

@@ -12,6 +12,10 @@ public record BoardCoordinate(
         return new BoardCoordinate(rank + rankStep, file + fileStep);
     }
 
+    public BoardCoordinate step(BoardCoordinate step) {
+        return step(step.rank(), step.file());
+    }
+
     public boolean isValid() {
         return rank >= 0 && rank < 8 && file >= 0 && file < 8;
     }
