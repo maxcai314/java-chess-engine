@@ -54,7 +54,7 @@ public final class Castle extends PlayerMove {
         if (!board.hasCastlingRights(getPlayer())) return false;
         if (!from.isValid() || !to.isValid()) return false;
         if (!from.equals(new BoardCoordinate(getPlayer().homeRank(), 4))) return false;
-        if (!(to.equals(new BoardCoordinate(getPlayer().homeRank(), 0)) || to.equals(new BoardCoordinate(getPlayer().homeRank(), 7)))) return false;
+        if (!(rookFrom.equals(new BoardCoordinate(getPlayer().homeRank(), 0)) || rookFrom.equals(new BoardCoordinate(getPlayer().homeRank(), 7)))) return false;
         else if (board.pieceAt(to) != null) return false;
 
         if (king == null) return false;

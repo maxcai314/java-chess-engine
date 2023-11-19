@@ -1,7 +1,6 @@
 package game;
 
-import game.moves.EnPassant;
-import game.moves.PlayerMove;
+import game.moves.*;
 import org.junit.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -180,6 +179,80 @@ public class BoardTest {
 
         System.out.println(board);
         System.out.println(board.toFEN());
+    }
+
+
+    /*
+        [SetUp "1"]
+        [FEN "r3k3/8/8/8/8/8/8/R3K2R w KQq - 0 1"]
+        1. Rb1 O-O-O 2. O-O *
+     */
+    @Test
+    public void testCastling() {
+        Board board = Board.fromFEN("r3k3/8/8/8/8/8/8/R3K2R w KQq - 0 1");
+        System.out.println(board);
+
+        board.makeMove("Rb1");
+        assertEquals(board.toFEN(), "r3k3/8/8/8/8/8/8/1R2K2R b Kq - 1 1");
+
+        Castle shortCastle = Castle.shortCastle(Player.WHITE);
+        Castle longCastle = Castle.longCastle(Player.WHITE);
+
+        assertTrue(shortCastle.isPossible(board));
+        assertFalse(longCastle.isPossible(board));
+
+        board.makeMove("O-O-O");
+        assertEquals(board.toFEN(), "2kr4/8/8/8/8/8/8/1R2K2R w K - 2 2");
+        board.makeMove("O-O");
+        assertEquals(board.toFEN(), "2kr4/8/8/8/8/8/8/1R3RK1 b - - 3 2");
+    }
+
+    @Test
+    public void testIsPossible() {
+        String FEN = "rnbqkbnr/ppp1pppp/8/3p4/3P1B2/8/PPP1PPPP/RN1QKBNR b KQkq - 1 2";
+        Board board = Board.fromFEN(FEN);
+        System.out.println("Loading FEN: " + board.toFEN());
+        System.out.println(board);
+
+        String[] opening = new String[] {
+                "c5",
+                "Nf3",
+                "Nc6",
+                "e3",
+                "Bf5",
+                "Nbd2",
+                "e6",
+                "c3",
+                "Bd6",
+                "Bg3",
+                "Nf6",
+                "Qb3",
+                "O-O"
+        }; // london system cope harder
+
+        for (String move : opening) {
+            System.out.println("\n\n");
+            System.out.println(board.getCurrentTurn() + ": " + move);
+            PlayerMove playerMove = board.fromNotation(move);
+
+            assertTrue(playerMove.isPossible(board));
+
+            PlayerMove[] illegalMoves = new PlayerMove[] {
+                new Promotion(new Piece(playerMove.getPlayer(), PieceType.KING), playerMove.getPiece(), playerMove.getFrom(), playerMove.getTo()),
+                new Promotion(new Piece(playerMove.getPlayer(), PieceType.ROOK), playerMove.getPiece(), playerMove.getFrom(), playerMove.getTo()),
+                Castle.longCastle(playerMove.getPlayer()),
+                EnPassant.enPassant(playerMove.getPlayer(), BoardCoordinate.fromString("a1"), BoardCoordinate.fromString("a2")),
+                new RegularMove(new Piece(playerMove.getPlayer(), PieceType.ROOK), BoardCoordinate.fromString("a1"), BoardCoordinate.fromString("a2"))
+            };
+
+            for (PlayerMove illegalMove : illegalMoves) {
+                assertFalse(illegalMove.isPossible(board));
+            }
+
+            board.makeMove(playerMove);
+            System.out.println(board);
+            System.out.println("Position: " + board.toFEN());
+        }
     }
 
 }
