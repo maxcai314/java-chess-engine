@@ -41,6 +41,8 @@ public final class Castle extends PlayerMove {
         board.removePiece(rookFrom);
         board.revokeShortCastle(getPlayer());
         board.revokeLongCastle(getPlayer());
+
+        board.switchTurn();
     }
 
     /** Doesn't check if the squares are defended, only if the pieces exist */
@@ -63,6 +65,16 @@ public final class Castle extends PlayerMove {
             if (board.pieceAt(new BoardCoordinate(from.rank(), i)) != null) return false;
         }
         // todo: check if the squares are defended
+
+        switch (rookFrom.file()) {
+            case 0 -> {
+                if (!board.canLongCastle(getPlayer())) return false;
+            }
+            case 7 -> {
+                if (!board.canShortCastle(getPlayer())) return false;
+            }
+            default -> throw new IllegalStateException("Rook is not on the edge of the board: " + rookFrom);
+        }
 
         return true;
     }

@@ -35,21 +35,5 @@ public class Main {
             System.out.println(board);
             System.out.println("Position: " + board.toFEN());
         }
-
-
-        // test En Passant
-        Board test = new Board();
-        String[] testMoves = new String[] {
-                "e4", "e6", "e5", "d5", "exd6", "cxd6"
-        };
-
-        for (String move : testMoves) {
-            System.out.println("\n\n");
-            System.out.println(test.getCurrentTurn() + ": " + move);
-            PlayerMove playerMove = test.fromNotation(move);
-            test.makeMove(playerMove);
-            System.out.println(test);
-            System.out.println("Position: " + test.toFEN());
-        }
     }
 }

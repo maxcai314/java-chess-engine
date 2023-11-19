@@ -56,7 +56,7 @@ public class Board {
         return currentTurn;
     }
 
-    public static Board fromFEN(String text) { // todo: implement toFEN method
+    public static Board fromFEN(String text) {
         String[] words = text.split("\\s+");
 
         String boardString = words[0];
@@ -116,11 +116,10 @@ public class Board {
             Player opponent = currentPlayer.opponent();
             Piece opponentPawn = new Piece(opponent, PieceType.PAWN);
             BoardCoordinate opponentPawnFrom = new BoardCoordinate(opponent.pawnRank(), possibleCapture.file());
-            BoardCoordinate opponentPawnTo = switch (opponent) {
-                case WHITE -> opponentPawnFrom.step(2, 0);
-                case BLACK -> opponentPawnFrom.step(-2, 0);
-            };
-            prevMoves.add(new RegularMove(opponentPawn, opponentPawnFrom, opponentPawnTo));
+            BoardCoordinate opponentPawnTo = opponentPawnFrom.step(2 * opponent.pawnDirection(), 0);
+            BoardCoordinate capturedPawn = opponentPawnFrom.step(opponent.pawnDirection(), 0);
+            if (capturedPawn.equals(possibleCapture))
+                prevMoves.add(new RegularMove(opponentPawn, opponentPawnFrom, opponentPawnTo));
         }
 
         if (words.length < 5) {
@@ -197,18 +196,26 @@ public class Board {
             if ("abcdefgh".contains(context)) { // pawn captures
                 int file = context.charAt(0) - 'a';
                 Piece pawn = new Piece(currentTurn, PieceType.PAWN);
-                ArrayList<PlayerMove> candidates = new ArrayList<>(findAttacksOnCoordinate(pawn, destination));
 
-                // add en passant if it exists
+                // en passant if it exists
                 if (!moves.isEmpty() && moves.get(moves.size() - 1) instanceof RegularMove lastMove) {
-                    if (lastMove.getPiece().type() == PieceType.PAWN && lastMove.getFrom().file() == file) {
-                        BoardCoordinate enPassant = lastMove.getFrom().step(currentTurn.pawnDirection(), 0);
-                        BoardCoordinate capturedPawn = enPassant.step(currentTurn.opponent().pawnDirection(), 0);
-                        if (enPassant.equals(destination) && isEmpty(capturedPawn) && pieceAt(enPassant).equals(new Piece(currentTurn.opponent(), PieceType.PAWN))) {
-                            candidates.add(EnPassant.enPassant(currentTurn, lastMove.getFrom(), destination));
+                    if (lastMove.getPiece().type() == PieceType.PAWN && lastMove.getFrom().file() == destination.file()) {
+                        BoardCoordinate pawnFrom = new BoardCoordinate(currentTurn.opponent().pawnRank(), destination.file());
+                        BoardCoordinate capturedPawn = pawnFrom.step(currentTurn.opponent().pawnDirection(), 0);
+                        BoardCoordinate pawnTo = pawnFrom.step(2 * currentTurn.opponent().pawnDirection(), 0);
+                        if (lastMove.getFrom().equals(pawnFrom) &&
+                            lastMove.getTo().equals(pawnTo) &&
+                            isEmpty(capturedPawn) && isEmpty(pawnFrom) &&
+                            !isEmpty(pawnTo) &&
+                            pieceAt(pawnTo).equals(new Piece(currentTurn.opponent(), PieceType.PAWN)) &&
+                            destination.equals(capturedPawn)
+                        ) {
+                            return EnPassant.enPassant(currentTurn, new BoardCoordinate(pawnTo.rank(), file), destination);
                         }
                     }
                 }
+
+                ArrayList<PlayerMove> candidates = new ArrayList<>(findAttacksOnCoordinate(pawn, destination));
 
                 List<PlayerMove> possible = candidates.stream()
                         .filter(a -> a.getFrom().file() == file)
@@ -470,6 +477,20 @@ public class Board {
         };
     }
 
+    public boolean canLongCastle(Player player) {
+        return switch (player) {
+            case WHITE -> whiteLongCastle;
+            case BLACK -> blackLongCastle;
+        };
+    }
+
+    public boolean canShortCastle(Player player) {
+        return switch (player) {
+            case WHITE -> whiteShortCastle;
+            case BLACK -> blackShortCastle;
+        };
+    }
+
     public void revokeLongCastle(Player player) {
         switch (player) {
             case WHITE -> whiteLongCastle = false;
@@ -487,6 +508,10 @@ public class Board {
     public void makeMove(PlayerMove move) {
         move.execute(this);
         moves.add(move);
+    }
+
+    public void makeMove(String notation) {
+        makeMove(fromNotation(notation));
     }
 
     // todo: GameState
@@ -520,21 +545,20 @@ public class Board {
         if (whiteLongCastle) builder.append("Q");
         if (blackShortCastle) builder.append("k");
         if (blackLongCastle) builder.append("q");
+        if (!whiteShortCastle && !whiteLongCastle && !blackShortCastle && !blackLongCastle) builder.append("-");
 
         builder.append(" ");
 
         EnPassant:
         {
             if (!moves.isEmpty()) {
+                Player opponent = currentTurn.opponent();
                 PlayerMove lastMove = moves.getLast();
                 if (lastMove instanceof RegularMove regularMove) {
-                    if (regularMove.getPiece().type() == PieceType.PAWN && Math.abs(regularMove.getFrom().rank() - regularMove.getTo().rank()) == 2) {
-                        builder.append((char) (regularMove.getTo().file() + 'a')).append(
-                                switch (currentTurn.opponent()) {
-                                    case WHITE -> 3;
-                                    case BLACK -> 6;
-                                }
-                        ).append(" ");
+                    BoardCoordinate pawnFrom = new BoardCoordinate(opponent.pawnRank(), regularMove.getTo().file());
+                    BoardCoordinate doubleStep = pawnFrom.step(2 * opponent.pawnDirection(), 0);
+                    if (regularMove.getPiece().type() == PieceType.PAWN && regularMove.getFrom().equals(pawnFrom) && regularMove.getTo().equals(doubleStep)) {
+                        builder.append(pawnFrom.step(opponent.pawnDirection(), 0)).append(" ");
                         break EnPassant;
                     }
                 }

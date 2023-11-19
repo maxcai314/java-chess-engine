@@ -32,6 +32,7 @@ public final class RegularMove extends PlayerMove {
 
         board.placePiece(piece, to);
         board.removePiece(from);
+
         board.switchTurn();
     }
 

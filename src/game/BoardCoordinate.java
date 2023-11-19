@@ -8,6 +8,11 @@ public record BoardCoordinate(
         return new BoardCoordinate(s.charAt(1) - '1', s.charAt(0) - 'a');
     }
 
+    @Override
+    public String toString() {
+        return String.format("%c%c", file + 'a', rank + '1');
+    }
+
     public BoardCoordinate step(int rankStep, int fileStep) {
         return new BoardCoordinate(rank + rankStep, file + fileStep);
     }

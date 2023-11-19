@@ -26,12 +26,13 @@ public final class EnPassant extends PlayerMove {
         board.placePiece(pawn, to);
         board.removePiece(from);
         board.removePiece(capturedPawnCoordinates);
+        board.switchTurn();
     }
 
     @Override
     public boolean isPossible(Board board) {
         if (!from.isValid() || !to.isValid()) return false;
-        else if (board.pieceAt(to) != null) return false;
+        else if (!board.isEmpty(to)) return false;
 
         if (pawn == null || pawn.type() != PieceType.PAWN) return false;
         if (capturedPawn == null || capturedPawn.type() != PieceType.PAWN) return false;

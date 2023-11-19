@@ -28,6 +28,7 @@ public final class Promotion extends PlayerMove {
     public void execute(Board board) {
         board.placePiece(newPiece, to);
         board.removePiece(from);
+
         board.switchTurn();
     }
 
