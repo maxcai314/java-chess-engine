@@ -71,6 +71,8 @@ public class BoardTest {
         PlayerMove enPassant = board.fromNotation("exd6");
         assertTrue(enPassant.isPossible(board));
         System.out.println(board.toFEN());
+        System.out.println("Lichess link: " + board.analysisLink());
+
         assertTrue(board.toFEN().startsWith("rnbqkbnr/ppp2ppp/4p3/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6")); // important: FEN specifies possible en passant on d6
 
         board.makeMove(enPassant);

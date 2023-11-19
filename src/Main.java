@@ -36,5 +36,8 @@ public class Main {
             System.out.println(board);
             System.out.println("Position: " + board.toFEN());
         }
+
+        System.out.println("\n\n");
+        System.out.println("Permalink to analysis: " + board.analysisLink());
     }
 }

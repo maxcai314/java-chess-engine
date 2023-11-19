@@ -161,6 +161,13 @@ public class Board {
         return new Board(newBoard, currentTurn, new ArrayList<PlayerMove>(moves), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, halfMoves, numMoves);
     }
 
+    public String analysisLink() {
+        String FEN = toFEN();
+        // replace spaces in FEN with underscores
+        FEN = FEN.replaceAll("\\s+", "_");
+        return "https://lichess.org/analysis/" + FEN;
+    }
+
     public Piece pieceAt(BoardCoordinate coordinate) {
         return board[coordinate.rank()][coordinate.file()];
     }
