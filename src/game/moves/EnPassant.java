@@ -26,7 +26,11 @@ public final class EnPassant extends PlayerMove {
         board.placePiece(pawn, to);
         board.removePiece(from);
         board.removePiece(capturedPawnCoordinates);
+
         board.switchTurn();
+
+        board.incrementNumMoves();
+        board.resetHalfMoves(); // en passant is ALWAYS capture and pawn push
     }
 
     @Override

@@ -43,6 +43,9 @@ public final class Castle extends PlayerMove {
         board.revokeLongCastle(getPlayer());
 
         board.switchTurn();
+
+        board.incrementNumMoves();
+        board.incrementHalfMoves(); // it's impossible for castles to be captures or pawn pushes
     }
 
     /** Doesn't check if the squares are defended, only if the pieces exist */

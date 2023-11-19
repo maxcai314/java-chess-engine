@@ -30,6 +30,9 @@ public final class Promotion extends PlayerMove {
         board.removePiece(from);
 
         board.switchTurn();
+
+        board.incrementHalfMoves();
+        board.resetHalfMoves(); // promotions are ALWAYS pawn pushes
     }
 
     @Override

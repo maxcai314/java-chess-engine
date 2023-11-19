@@ -31,10 +31,12 @@ public class Board {
     public boolean blackShortCastle;
     public boolean blackLongCastle;
 
-    // todo: add halfmove counter: num of moves since last capture/pawn push
+    private int halfMoves; // for 50-move rule
+
+    private int numMoves; // number of moves both players have made; divide by two to use
 
     // todo: update constructor too
-    public Board(Piece[][] board, Player currentTurn, ArrayList<PlayerMove> moves, boolean whiteShortCastle, boolean whiteLongCastle, boolean blackShortCastle, boolean blackLongCastle) {
+    public Board(Piece[][] board, Player currentTurn, ArrayList<PlayerMove> moves, boolean whiteShortCastle, boolean whiteLongCastle, boolean blackShortCastle, boolean blackLongCastle, int halfMoves, int numMoves) {
         this.board = board;
         this.currentTurn = currentTurn;
         this.moves = moves;
@@ -42,14 +44,28 @@ public class Board {
         this.whiteLongCastle = whiteLongCastle;
         this.blackShortCastle = blackShortCastle;
         this.blackLongCastle = blackLongCastle;
+        this.halfMoves = halfMoves;
+        this.numMoves = numMoves;
     }
 
     public Board() {
-        this(DEFAULT_BOARD, Player.WHITE, new ArrayList<PlayerMove>(), true, true, true, true);
+        this(DEFAULT_BOARD, Player.WHITE, new ArrayList<PlayerMove>(), true, true, true, true, 0, 0);
     }
 
     public void switchTurn() {
         currentTurn = currentTurn.opponent();
+    }
+
+    public void incrementHalfMoves() {
+        halfMoves++;
+    }
+
+    public void resetHalfMoves() {
+        halfMoves = 0;
+    }
+
+    public void incrementNumMoves() {
+        numMoves++;
     }
 
     public Player currentTurn() {
@@ -81,7 +97,7 @@ public class Board {
             }
         }
         if (words.length == 1) {
-            return new Board(board, Player.WHITE, new ArrayList<PlayerMove>(), true, true, true, true);
+            return new Board(board, Player.WHITE, new ArrayList<PlayerMove>(), true, true, true, true, 0, 0);
         }
 
         Player currentPlayer = switch (words[1].charAt(0)) {
@@ -95,7 +111,7 @@ public class Board {
         };
 
         if (words.length == 2) {
-            return new Board(board, currentPlayer, new ArrayList<PlayerMove>(), true, true, true, true);
+            return new Board(board, currentPlayer, new ArrayList<PlayerMove>(), true, true, true, true, 0, 0);
         }
 
         String castlingRights = words[2];
@@ -105,7 +121,7 @@ public class Board {
         boolean blackLongCastle = castlingRights.contains("q");
 
         if (words.length == 3) {
-            return new Board(board, currentPlayer, new ArrayList<PlayerMove>(), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
+            return new Board(board, currentPlayer, new ArrayList<PlayerMove>(), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, 0, 0);
         }
 
         String enPassant = words[3];
@@ -123,13 +139,18 @@ public class Board {
         }
 
         if (words.length < 5) {
-            return new Board(board, currentPlayer, prevMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
+            return new Board(board, currentPlayer, prevMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, 0, 0);
         }
 
         int halfMoves = Integer.parseInt(words[4]); // todo: use for 50-move rule
-        int fullMoves = Integer.parseInt(words[5]); // unused
+        int fullMoves = Integer.parseInt(words[5]);
+        int numMoves = switch (currentPlayer) {
+            case WHITE -> fullMoves * 2 - 2;
+            case BLACK -> fullMoves * 2 - 1;
+        };
 
-        return new Board(board, currentPlayer, prevMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
+        return new Board(board, currentPlayer, prevMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, halfMoves, numMoves
+        );
     }
 
     public Board copy() { // todo: update
@@ -137,7 +158,7 @@ public class Board {
         for (int i = 0; i < board.length; i++) {
             newBoard[i] = board[i].clone();
         }
-        return new Board(newBoard, currentTurn, new ArrayList<PlayerMove>(moves), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
+        return new Board(newBoard, currentTurn, new ArrayList<PlayerMove>(moves), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, halfMoves, numMoves);
     }
 
     public Piece pieceAt(BoardCoordinate coordinate) {
@@ -188,7 +209,7 @@ public class Board {
             if (context != null) {
                 return new Promotion(piece, new Piece(currentTurn, PieceType.PAWN), new BoardCoordinate(currentTurn.opponent().pawnRank(), context.charAt(0) - 'a'), destination);
             } else {
-                return new Promotion(piece, new Piece(currentTurn, PieceType.PAWN), new BoardCoordinate(currentTurn.opponent().homeRank(), destination.file()), destination);
+                return new Promotion(piece, new Piece(currentTurn, PieceType.PAWN), new BoardCoordinate(currentTurn.opponent().pawnRank(), destination.file()), destination);
             }
         }
 
@@ -565,7 +586,10 @@ public class Board {
             }
             builder.append("- ");
         }
-        builder.append("0 1"); // todo: implement halfmove counter and fullmove counter
+
+        builder.append(halfMoves)
+                .append(" ")
+                .append(numMoves / 2 + 1);
 
         return builder.toString();
     }

@@ -30,10 +30,17 @@ public final class RegularMove extends PlayerMove {
             }
         }
 
+        boolean isCapture = board.pieceAt(to) != null;
+        boolean isPawnMove = piece.type() == PieceType.PAWN;
+
         board.placePiece(piece, to);
         board.removePiece(from);
 
         board.switchTurn();
+
+        board.incrementNumMoves();
+        if (isCapture || isPawnMove) board.resetHalfMoves();
+        else board.incrementHalfMoves();
     }
 
     @Override

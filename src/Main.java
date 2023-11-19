@@ -31,6 +31,7 @@ public class Main {
             System.out.println("\n\n");
             System.out.println(board.getCurrentTurn() + ": " + move);
             PlayerMove playerMove = board.fromNotation(move);
+            assert playerMove.isPossible(board);
             board.makeMove(playerMove);
             System.out.println(board);
             System.out.println("Position: " + board.toFEN());
