@@ -226,7 +226,7 @@ public class Board {
                 Piece pawn = new Piece(currentTurn, PieceType.PAWN);
 
                 // en passant if it exists
-                if (!moves.isEmpty() && moves.get(moves.size() - 1) instanceof RegularMove lastMove) {
+                if (!moves.isEmpty() && moves.getLast() instanceof RegularMove lastMove) {
                     if (lastMove.getPiece().type() == PieceType.PAWN && lastMove.getFrom().file() == destination.file()) {
                         BoardCoordinate pawnFrom = new BoardCoordinate(currentTurn.opponent().pawnRank(), destination.file());
                         BoardCoordinate capturedPawn = pawnFrom.step(currentTurn.opponent().pawnDirection(), 0);
@@ -375,16 +375,17 @@ public class Board {
     /**
      * Gets the hypothetical moves a piece could make if it were of the input type and at the input position
      */
-    private List<PlayerMove> attacksWithPiece(Piece piece, BoardCoordinate position) {
+    private List<PlayerMove> attacksUsingPiece(Piece piece, BoardCoordinate position) {
         return switch (piece.type()) {
             case PAWN ->
                     Stream.of(1, -1)
                         .map(a -> position.step(piece.owner().pawnDirection(), a))
                         .filter(BoardCoordinate::isValid)
+                        .filter(a -> !isEmpty(a) && pieceAt(a).owner() != piece.owner())
                         .flatMap(a ->
-                            a.rank() == piece.owner().opponent().homeRank() ?
-                                Stream.of(Promotion.allPromotions(piece, position, a)) :
-                                Stream.of(new RegularMove(piece, position, a)
+                        a.rank() == piece.owner().opponent().homeRank() ?
+                            Stream.of(Promotion.allPromotions(piece, position, a)) :
+                            Stream.of(new RegularMove(piece, position, a)
                         ))
                         .toList();
 
@@ -453,7 +454,7 @@ public class Board {
      */
     private List<PlayerMove> findAttacksOnCoordinate(Piece piece, BoardCoordinate position) {
         Piece enemy = new Piece(piece.owner().opponent(), piece.type());
-        return attacksWithPiece(enemy, position)
+        return attacksUsingPiece(enemy, position)
                 .stream()
                 .filter(a -> a instanceof RegularMove) // promotions can't become attacks
                 .filter(a -> piece.equals(pieceAt(a.getTo())))
@@ -476,7 +477,7 @@ public class Board {
         // strategy: replace the position square with a piece of any type, and see if it attacks an opponent piece of the same type
         Player player = opponent.opponent();
         return Stream.of(ATTACKING_PIECES)
-                .flatMap(pieceType -> attacksWithPiece(new Piece(player, pieceType), position).stream())
+                .flatMap(pieceType -> attacksUsingPiece(new Piece(player, pieceType), position).stream())
                 .anyMatch(move -> pieceAt(move.getTo()) != null && move.getPiece().type() == pieceAt(move.getTo()).type());
     }
 
@@ -494,8 +495,98 @@ public class Board {
     }
 
     public List<PlayerMove> getLegalMoves() {
-        // todo: implement
-        return null;
+        ArrayList<PlayerMove> legalMoves = new ArrayList<>();
+
+        for (int rank = 0; rank < board.length; rank++) {
+            for (int file = 0; file < board[rank].length; file++) {
+                BoardCoordinate position = new BoardCoordinate(rank, file);
+                Piece piece = pieceAt(position);
+
+                if (piece == null || piece.owner() != currentTurn)
+                    continue;
+
+                legalMoves.addAll(attacksUsingPiece(piece, position));
+
+                // pawn pushes
+                if (piece.type() == PieceType.PAWN) {
+                    BoardCoordinate singleStepFrom = position.step(currentTurn.pawnDirection(), 0);
+                    if (isEmpty(singleStepFrom)) {
+                        if (singleStepFrom.rank() == currentTurn.opponent().homeRank()) {
+                            legalMoves.addAll(List.of(Promotion.allPromotions(piece, position, singleStepFrom)));
+                        } else {
+                            legalMoves.add(new RegularMove(piece, position, singleStepFrom));
+
+                            BoardCoordinate doubleStepFrom = singleStepFrom.step(currentTurn.pawnDirection(), 0);
+                            if (position.rank() == currentTurn.pawnRank() && isEmpty(doubleStepFrom)) {
+                                legalMoves.add(new RegularMove(piece, position, doubleStepFrom));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (canShortCastle(currentTurn)) {
+            ShortCastleSearch: {
+                // check if the squares are defended
+                for (int i = 5; i < 7; i++) {
+                    BoardCoordinate coord = new BoardCoordinate(currentTurn.homeRank(), i);
+                    if (!isEmpty(coord)) {
+                        break ShortCastleSearch;
+                    }
+                    if (isDefendedBy(currentTurn.opponent(), coord)) {
+                        break ShortCastleSearch;
+                    }
+                }
+                legalMoves.add(Castle.shortCastle(currentTurn));
+            }
+        }
+
+        if (canLongCastle(currentTurn)) {
+            LongCastleSearch: {
+                // check if the squares are defended
+                for (int i = 1; i < 4; i++) {
+                    BoardCoordinate coord = new BoardCoordinate(currentTurn.homeRank(), i);
+                    if (!isEmpty(coord)) {
+                        break LongCastleSearch;
+                    }
+                    if (isDefendedBy(currentTurn.opponent(), coord)) {
+                        break LongCastleSearch;
+                    }
+                }
+                legalMoves.add(Castle.longCastle(currentTurn));
+            }
+        }
+
+        // en passant
+        if (!moves.isEmpty() && moves.getLast() instanceof RegularMove lastMove) {
+            if (lastMove.getPiece().type() == PieceType.PAWN) {
+                BoardCoordinate pawnFrom = new BoardCoordinate(currentTurn.opponent().pawnRank(), lastMove.getFrom().file());
+                BoardCoordinate capturablePawn = pawnFrom.step(currentTurn.opponent().pawnDirection(), 0);
+                BoardCoordinate pawnTo = pawnFrom.step(2 * currentTurn.opponent().pawnDirection(), 0);
+                if (lastMove.getFrom().equals(pawnFrom) &&
+                        lastMove.getTo().equals(pawnTo) &&
+                        isEmpty(capturablePawn) && isEmpty(pawnFrom) &&
+                        !isEmpty(pawnTo) &&
+                        pieceAt(pawnTo).equals(new Piece(currentTurn.opponent(), PieceType.PAWN))
+                ) {
+                    findAttacksOnCoordinate(new Piece(currentTurn, PieceType.PAWN), capturablePawn)
+                        .stream()
+                        .map(PlayerMove::getFrom)
+                        .map(from -> EnPassant.enPassant(currentTurn, from, capturablePawn))
+                        .forEach(legalMoves::add);
+                }
+            }
+        }
+
+        return legalMoves.stream()
+                .filter(a -> a.isPossible(this))
+                .filter(a -> {
+                    Board copy = copy();
+                    a.execute(copy);
+                    return !copy.isInCheck(currentTurn);
+                })
+                .toList();
     }
 
     public boolean hasCastlingRights(Player player) {

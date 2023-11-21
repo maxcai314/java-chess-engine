@@ -46,7 +46,6 @@ public final class RegularMove extends PlayerMove {
     @Override
     public boolean isPossible(Board board) {
         if (!from.isValid() || !to.isValid()) return false;
-        else if (board.pieceAt(to) != null) return false;
 
         if (piece == null) return false;
         if (!piece.equals(board.pieceAt(from))) return false;
@@ -71,5 +70,17 @@ public final class RegularMove extends PlayerMove {
     @Override
     public Player getPlayer() {
         return piece.owner();
+    }
+
+    @Override
+    public String toString() {
+        if (piece.type() == PieceType.PAWN) {
+            if (to.file() == from.file()){
+                return String.format("%s%s", from, to);
+            } else {
+                return String.format("%sx%s", from, to);
+            }
+        }
+        return String.format("%c%s%s", Character.toUpperCase(piece.toChar()), from, to);
     }
 }

@@ -28,8 +28,9 @@ public class Main {
         }; // london system cope harder
 
         for (String move : opening) {
-            System.out.println("\n\n");
-            System.out.println(board.getCurrentTurn() + ": " + move);
+            System.out.println("\n");
+            System.out.printf("Possible Moves for %s: %n%s%n", board.currentTurn(), board.getLegalMoves());
+            System.out.printf("%s chose: %s%n", board.getCurrentTurn(), move);
             PlayerMove playerMove = board.fromNotation(move);
             assert playerMove.isPossible(board);
             board.makeMove(playerMove);
@@ -39,5 +40,7 @@ public class Main {
 
         System.out.println("\n\n");
         System.out.println("Permalink to analysis: " + board.analysisLink());
+
+        System.out.println("Starting moves:\n" + new Board().getLegalMoves());
     }
 }

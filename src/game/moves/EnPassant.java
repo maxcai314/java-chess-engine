@@ -73,4 +73,9 @@ public final class EnPassant extends PlayerMove {
     public BoardCoordinate getCapturedPawnCoordinates() {
         return capturedPawnCoordinates;
     }
+
+    @Override
+    public String toString() {
+        return String.format("%sx%s", from, to);
+    }
 }

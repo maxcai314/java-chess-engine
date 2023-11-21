@@ -16,4 +16,7 @@ public sealed abstract class PlayerMove implements BoardCommand permits RegularM
     public abstract BoardCoordinate getTo();
 
     public abstract Player getPlayer();
+
+    @Override
+    public abstract String toString();
 }

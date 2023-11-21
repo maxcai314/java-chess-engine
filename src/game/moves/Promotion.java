@@ -76,4 +76,9 @@ public final class Promotion extends PlayerMove {
     public Piece getNewPiece() {
         return newPiece;
     }
+
+    @Override
+    public String toString() {
+        return String.format("%s%s=%s", from, to, newPiece.toChar());
+    }
 }

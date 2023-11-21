@@ -113,4 +113,13 @@ public final class Castle extends PlayerMove {
     public BoardCoordinate getRookTo() {
         return rookTo;
     }
+
+    @Override
+    public String toString() {
+        return switch (rookFrom.file()) {
+            case 0 -> "O-O-O";
+            case 7 -> "O-O";
+            default -> throw new IllegalStateException("Rook is not on the edge of the board: " + rookFrom);
+        };
+    }
 }
