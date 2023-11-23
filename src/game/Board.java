@@ -3,6 +3,7 @@ package game;
 import game.moves.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -21,7 +22,7 @@ public class Board {
         { new Piece(Player.BLACK, PieceType.ROOK), new Piece(Player.BLACK, PieceType.KNIGHT), new Piece(Player.BLACK, PieceType.BISHOP), new Piece(Player.BLACK, PieceType.QUEEN), new Piece(Player.BLACK, PieceType.KING), new Piece(Player.BLACK, PieceType.BISHOP), new Piece(Player.BLACK, PieceType.KNIGHT), new Piece(Player.BLACK, PieceType.ROOK) },
     };
 
-    private final Piece[][] board = new Piece[8][8];
+    private final Piece[][] board;
     private Player currentTurn;
     private final ArrayList<PlayerMove> moves; // todo: make a moverecord
 
@@ -36,10 +37,7 @@ public class Board {
     private int numMoves; // number of moves both players have made; divide by two to use
 
     public Board(Piece[][] board, Player currentTurn, ArrayList<PlayerMove> moves, boolean whiteShortCastle, boolean whiteLongCastle, boolean blackShortCastle, boolean blackLongCastle, int halfMoves, int numMoves) {
-        for (int i = 0; i < this.board.length; i++) {
-            this.board[i] = board[i].clone();
-        }
-
+        this.board = Arrays.stream(board).map(Piece[]::clone).toArray(Piece[][]::new);
         this.currentTurn = currentTurn;
         this.moves = moves;
         this.whiteShortCastle = whiteShortCastle;
@@ -156,11 +154,7 @@ public class Board {
     }
 
     public Board copy() {
-        Piece[][] newBoard = new Piece[board.length][];
-        for (int i = 0; i < board.length; i++) {
-            newBoard[i] = board[i].clone();
-        }
-        return new Board(newBoard, currentTurn, new ArrayList<>(moves), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, halfMoves, numMoves);
+        return new Board(board, currentTurn, new ArrayList<>(moves), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, halfMoves, numMoves);
     }
 
     public String analysisLink() {

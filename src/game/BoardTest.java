@@ -347,4 +347,14 @@ public class BoardTest {
         System.out.println("Permalink to analysis: " + endgame.analysisLink());
     }
 
+    @Test
+    public void testBoardCopy() {
+        Board board1 = new Board();
+        Board board2 = new Board();
+        Board board3 = board1.copy();
+
+        assertNotSame(board1, board2);
+        assertNotSame(board1, board3);
+        assertNotSame(board2, board3);
+    }
 }
