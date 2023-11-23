@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class Board {
-    public static final Piece[][] DEFAULT_BOARD = new Piece[][] {
+    private static final Piece[][] DEFAULT_BOARD = new Piece[][] {
         { new Piece(Player.WHITE, PieceType.ROOK), new Piece(Player.WHITE, PieceType.KNIGHT), new Piece(Player.WHITE, PieceType.BISHOP), new Piece(Player.WHITE, PieceType.QUEEN), new Piece(Player.WHITE, PieceType.KING), new Piece(Player.WHITE, PieceType.BISHOP), new Piece(Player.WHITE, PieceType.KNIGHT), new Piece(Player.WHITE, PieceType.ROOK) },
         { new Piece(Player.WHITE, PieceType.PAWN), new Piece(Player.WHITE, PieceType.PAWN), new Piece(Player.WHITE, PieceType.PAWN), new Piece(Player.WHITE, PieceType.PAWN), new Piece(Player.WHITE, PieceType.PAWN), new Piece(Player.WHITE, PieceType.PAWN), new Piece(Player.WHITE, PieceType.PAWN), new Piece(Player.WHITE, PieceType.PAWN) },
         { null, null, null, null, null, null, null, null },
@@ -21,7 +21,7 @@ public class Board {
         { new Piece(Player.BLACK, PieceType.ROOK), new Piece(Player.BLACK, PieceType.KNIGHT), new Piece(Player.BLACK, PieceType.BISHOP), new Piece(Player.BLACK, PieceType.QUEEN), new Piece(Player.BLACK, PieceType.KING), new Piece(Player.BLACK, PieceType.BISHOP), new Piece(Player.BLACK, PieceType.KNIGHT), new Piece(Player.BLACK, PieceType.ROOK) },
     };
 
-    private final Piece[][] board;
+    private final Piece[][] board = new Piece[8][8];
     private Player currentTurn;
     private final ArrayList<PlayerMove> moves; // todo: make a moverecord
 
@@ -36,7 +36,10 @@ public class Board {
     private int numMoves; // number of moves both players have made; divide by two to use
 
     public Board(Piece[][] board, Player currentTurn, ArrayList<PlayerMove> moves, boolean whiteShortCastle, boolean whiteLongCastle, boolean blackShortCastle, boolean blackLongCastle, int halfMoves, int numMoves) {
-        this.board = board;
+        for (int i = 0; i < this.board.length; i++) {
+            this.board[i] = board[i].clone();
+        }
+
         this.currentTurn = currentTurn;
         this.moves = moves;
         this.whiteShortCastle = whiteShortCastle;

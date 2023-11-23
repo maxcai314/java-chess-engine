@@ -63,7 +63,6 @@ public class BoardTest {
     @Test
     public void testEnPassant() {
         Board board = new Board();
-        assertEquals(DEFAULT_BOARD, board.toString());
         System.out.println(board);
 
         board.makeMove("e4");
@@ -251,6 +250,7 @@ public class BoardTest {
             };
 
             for (PlayerMove illegalMove : illegalMoves) {
+                System.out.println("Testing illegal move: " + illegalMove);
                 assertFalse(illegalMove.isPossible(board));
             }
 

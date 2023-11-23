@@ -40,6 +40,7 @@ public final class Promotion extends PlayerMove {
         if (!from.isValid() || !to.isValid()) return false;
         if (from.rank() != getPlayer().opponent().pawnRank()) return false;
         if (to.rank() != getPlayer().opponent().homeRank()) return false;
+        if (!board.isEmpty(to) && board.pieceAt(to).owner() == getPlayer()) return false;
 
         if (oldPiece == null) return false;
         if (newPiece == null) return false;
