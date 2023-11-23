@@ -35,7 +35,6 @@ public class Board {
 
     private int numMoves; // number of moves both players have made; divide by two to use
 
-    // todo: update constructor too
     public Board(Piece[][] board, Player currentTurn, ArrayList<PlayerMove> moves, boolean whiteShortCastle, boolean whiteLongCastle, boolean blackShortCastle, boolean blackLongCastle, int halfMoves, int numMoves) {
         this.board = board;
         this.currentTurn = currentTurn;
@@ -49,7 +48,7 @@ public class Board {
     }
 
     public Board() {
-        this(DEFAULT_BOARD, Player.WHITE, new ArrayList<PlayerMove>(), true, true, true, true, 0, 0);
+        this(DEFAULT_BOARD, Player.WHITE, new ArrayList<>(), true, true, true, true, 0, 0);
     }
 
     public void switchTurn() {
@@ -142,7 +141,7 @@ public class Board {
             return new Board(board, currentPlayer, prevMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, 0, 0);
         }
 
-        int halfMoves = Integer.parseInt(words[4]); // todo: use for 50-move rule
+        int halfMoves = Integer.parseInt(words[4]);
         int fullMoves = Integer.parseInt(words[5]);
         int numMoves = switch (currentPlayer) {
             case WHITE -> fullMoves * 2 - 2;
@@ -153,12 +152,12 @@ public class Board {
         );
     }
 
-    public Board copy() { // todo: update
+    public Board copy() {
         Piece[][] newBoard = new Piece[board.length][];
         for (int i = 0; i < board.length; i++) {
             newBoard[i] = board[i].clone();
         }
-        return new Board(newBoard, currentTurn, new ArrayList<PlayerMove>(moves), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, halfMoves, numMoves);
+        return new Board(newBoard, currentTurn, new ArrayList<>(moves), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, halfMoves, numMoves);
     }
 
     public String analysisLink() {
@@ -198,7 +197,7 @@ public class Board {
         }
         if (groups[3] == null) throw new IllegalArgumentException("Invalid algebraic notation: " + text);
 
-        String context = null;
+        String context;
         if (groups[5] != null) { // capture
             // remove the 'x' at the end
             context = groups[5].substring(0, groups[5].length() - 1);
@@ -467,7 +466,8 @@ public class Board {
             PieceType.KNIGHT,
             PieceType.BISHOP,
             PieceType.ROOK,
-            PieceType.QUEEN
+            PieceType.QUEEN,
+            PieceType.KING
     };
 
     /**
@@ -526,7 +526,7 @@ public class Board {
             }
         }
 
-        if (canShortCastle(currentTurn)) {
+        if (!isInCheck(currentTurn) && canShortCastle(currentTurn)) {
             ShortCastleSearch: {
                 // check if the squares are defended
                 for (int i = 5; i < 7; i++) {
@@ -542,7 +542,7 @@ public class Board {
             }
         }
 
-        if (canLongCastle(currentTurn)) {
+        if (!isInCheck(currentTurn) && canLongCastle(currentTurn)) {
             LongCastleSearch: {
                 // check if the squares are defended
                 for (int i = 1; i < 4; i++) {

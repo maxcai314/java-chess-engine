@@ -63,6 +63,9 @@ public class BoardTest {
     @Test
     public void testEnPassant() {
         Board board = new Board();
+        assertEquals(DEFAULT_BOARD, board.toString());
+        System.out.println(board);
+
         board.makeMove("e4");
         board.makeMove("e6");
         board.makeMove("e5");
@@ -255,6 +258,93 @@ public class BoardTest {
             System.out.println(board);
             System.out.println("Position: " + board.toFEN());
         }
+    }
+
+    @Test
+    public void testLegalMoves() {
+        Board board = new Board();
+        System.out.println(board);
+
+        assertEquals(20, board.getLegalMoves().size());
+        board.makeMove("e4");
+        assertEquals(20, board.getLegalMoves().size());
+        board.makeMove("e5");
+        assertEquals(29, board.getLegalMoves().size());
+        board.makeMove("f4");
+        assertEquals(30, board.getLegalMoves().size());
+        board.makeMove("exf4");
+        assertEquals(29, board.getLegalMoves().size());
+        board.makeMove("Nf3");
+        assertEquals(29, board.getLegalMoves().size());
+        board.makeMove("Nc6");
+        assertEquals(29, board.getLegalMoves().size());
+        board.makeMove("Bb5");
+        assertEquals(31, board.getLegalMoves().size());
+        board.makeMove("d6");
+        assertEquals(34, board.getLegalMoves().size()); // including castle
+        board.makeMove("d3");
+        assertEquals(27, board.getLegalMoves().size()); // black's knight is pinned
+        board.makeMove("Qh4+"); // check
+        assertEquals(5, board.getLegalMoves().size()); // can't castle while in check
+        board.makeMove("Nxh4");
+        assertEquals(24, board.getLegalMoves().size()); // knight is still pinned
+        board.makeMove("Bd7");
+        assertEquals(36, board.getLegalMoves().size());
+        board.makeMove("Bxf4");
+        assertEquals(32, board.getLegalMoves().size()); // knight is unpinned
+        board.makeMove("h6");
+        assertEquals(42, board.getLegalMoves().size());
+        board.makeMove("Bg5");
+        assertEquals(28, board.getLegalMoves().size()); // castle is blocked
+
+        System.out.println(board);
+
+
+        Board endgame = Board.fromFEN("8/5r1p/2k5/6PR/3K4/8/8/8 w - - 0 1");
+        System.out.println(endgame);
+
+        assertEquals(13, endgame.getLegalMoves().size()); // king cuts off other king's moves
+        endgame.makeMove("Rh4");
+        assertEquals(21, endgame.getLegalMoves().size());
+        endgame.makeMove("h5");
+        assertEquals(15, endgame.getLegalMoves().size()); // en passant
+        endgame.makeMove("gxh6");
+        assertEquals(20, endgame.getLegalMoves().size());
+        endgame.makeMove("Rd7+");
+        assertEquals(5, endgame.getLegalMoves().size()); // escape check
+        endgame.makeMove("Ke3");
+        assertEquals(21, endgame.getLegalMoves().size());
+        endgame.makeMove("Re7+");
+        assertEquals(7, endgame.getLegalMoves().size()); // rook can also block check
+        endgame.makeMove("Re4");
+        assertEquals(19, endgame.getLegalMoves().size());
+        endgame.makeMove("Rf7");
+        assertEquals(16, endgame.getLegalMoves().size());
+        endgame.makeMove("Rh4");
+        assertEquals(22, endgame.getLegalMoves().size());
+        endgame.makeMove("Rf8");
+        assertEquals(17, endgame.getLegalMoves().size());
+        endgame.makeMove("h7");
+        assertEquals(22, endgame.getLegalMoves().size());
+        endgame.makeMove("Rg8");
+        assertEquals(28, endgame.getLegalMoves().size()); // two promotion squares
+        endgame.makeMove("hxg8=Q");
+        assertEquals(7, endgame.getLegalMoves().size());
+        endgame.makeMove("Kb7");
+        assertEquals(43, endgame.getLegalMoves().size());
+        endgame.makeMove("Qg7+");
+        assertEquals(6, endgame.getLegalMoves().size());
+        endgame.makeMove("Kc8");
+        assertEquals(45, endgame.getLegalMoves().size());
+        endgame.makeMove("Rh8#");
+
+        assertEquals(0, endgame.getLegalMoves().size()); // checkmate
+        assertTrue(endgame.isInCheck(Player.BLACK));
+
+        System.out.println(endgame);
+        System.out.println("Checkmate!");
+        System.out.println("Position: " + endgame.toFEN());
+        System.out.println("Permalink to analysis: " + endgame.analysisLink());
     }
 
 }

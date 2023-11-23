@@ -13,6 +13,14 @@ public enum Player {
         this.pawnDirection = pawnDirection;
     }
 
+    public static Player fromChar(char c) {
+        return switch (Character.toUpperCase(c)) {
+            case 'W' -> WHITE;
+            case 'B' -> BLACK;
+            default -> throw new IllegalArgumentException("Invalid player character: " + c);
+        };
+    }
+
     public Player opponent() {
         return switch (this) {
             case WHITE -> BLACK;
