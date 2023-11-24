@@ -3,6 +3,7 @@ package game.moves;
 import game.*;
 
 public final class Castle extends PlayerMove {
+    // todo: make this an enum instead of a class
     private final Piece king;
     private final BoardCoordinate from;
     private final BoardCoordinate to;

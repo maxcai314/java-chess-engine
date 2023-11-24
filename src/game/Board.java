@@ -22,7 +22,7 @@ public class Board {
 
     private final Piece[][] board;
     private Player currentTurn;
-    private final ArrayList<PlayerMove> moves; // todo: make a moverecord
+    private final ArrayList<MoveRecord> moves;
 
     // castling rights (revoked when king or rook game.moves)
     public boolean whiteShortCastle;
@@ -34,7 +34,7 @@ public class Board {
 
     private int numMoves; // number of moves both players have made; divide by two to use
 
-    private Board(Piece[][] board, Player currentTurn, ArrayList<PlayerMove> moves, boolean whiteShortCastle, boolean whiteLongCastle, boolean blackShortCastle, boolean blackLongCastle, int halfMoves, int numMoves) {
+    private Board(Piece[][] board, Player currentTurn, ArrayList<MoveRecord> moves, boolean whiteShortCastle, boolean whiteLongCastle, boolean blackShortCastle, boolean blackLongCastle, int halfMoves, int numMoves) {
         this.board = Arrays.stream(board).map(Piece[]::clone).toArray(Piece[][]::new);
         this.currentTurn = currentTurn;
         this.moves = moves;
@@ -95,13 +95,13 @@ public class Board {
             }
         }
         if (words.length == 1) {
-            return new Board(board, Player.WHITE, new ArrayList<PlayerMove>(), true, true, true, true, 0, 0);
+            return new Board(board, Player.WHITE, new ArrayList<>(), true, true, true, true, 0, 0);
         }
 
         Player currentPlayer = Player.fromChar(words[1].charAt(0));
 
         if (words.length == 2) {
-            return new Board(board, currentPlayer, new ArrayList<PlayerMove>(), true, true, true, true, 0, 0);
+            return new Board(board, currentPlayer, new ArrayList<>(), true, true, true, true, 0, 0);
         }
 
         String castlingRights = words[2];
@@ -111,11 +111,26 @@ public class Board {
         boolean blackLongCastle = castlingRights.contains("q");
 
         if (words.length == 3) {
-            return new Board(board, currentPlayer, new ArrayList<PlayerMove>(), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, 0, 0);
+            return new Board(board, currentPlayer, new ArrayList<>(), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, 0, 0);
         }
 
         String enPassant = words[3];
-        ArrayList<PlayerMove> prevMoves = new ArrayList<>();
+        ArrayList<MoveRecord> prevMoves = new ArrayList<>();
+
+        Board result;
+
+        if (words.length < 5) {
+            result = new Board(board, currentPlayer, prevMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, 0, 0);
+        } else {
+            int halfMoves = Integer.parseInt(words[4]);
+            int fullMoves = Integer.parseInt(words[5]);
+            int numMoves = switch (currentPlayer) {
+                case WHITE -> fullMoves * 2 - 2;
+                case BLACK -> fullMoves * 2 - 1;
+            };
+            result = new Board(board, currentPlayer, prevMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, halfMoves, numMoves);
+        }
+
         if (!enPassant.equals("-")) {
             BoardCoordinate possibleCapture = BoardCoordinate.fromString(enPassant);
             // figure out the previous opponent move
@@ -125,22 +140,22 @@ public class Board {
             BoardCoordinate opponentPawnTo = opponentPawnFrom.step(2 * opponent.pawnDirection(), 0);
             BoardCoordinate capturedPawn = opponentPawnFrom.step(opponent.pawnDirection(), 0);
             if (capturedPawn.equals(possibleCapture))
-                prevMoves.add(new RegularMove(opponentPawn, opponentPawnFrom, opponentPawnTo));
+                prevMoves.add(new MoveRecord(
+                        new RegularMove(opponentPawn, opponentPawnFrom, opponentPawnTo),
+                        false,
+                        result.isInCheck(currentPlayer),
+                        false,
+                        GameState.UNFINISHED,
+                        board,
+                        whiteShortCastle,
+                        whiteLongCastle,
+                        blackShortCastle,
+                        blackLongCastle,
+                        result.halfMoves,
+                        result.numMoves
+                ));
         }
-
-        if (words.length < 5) {
-            return new Board(board, currentPlayer, prevMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, 0, 0);
-        }
-
-        int halfMoves = Integer.parseInt(words[4]);
-        int fullMoves = Integer.parseInt(words[5]);
-        int numMoves = switch (currentPlayer) {
-            case WHITE -> fullMoves * 2 - 2;
-            case BLACK -> fullMoves * 2 - 1;
-        };
-
-        return new Board(board, currentPlayer, prevMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, halfMoves, numMoves
-        );
+        return result;
     }
 
     public Board copy() {
@@ -212,7 +227,7 @@ public class Board {
                 Piece pawn = new Piece(currentTurn, PieceType.PAWN);
 
                 // en passant if it exists
-                if (!moves.isEmpty() && moves.getLast() instanceof RegularMove lastMove) {
+                if (!moves.isEmpty() && moves.getLast().move() instanceof RegularMove lastMove) {
                     if (lastMove.getPiece().type() == PieceType.PAWN && lastMove.getFrom().file() == destination.file()) {
                         BoardCoordinate pawnFrom = new BoardCoordinate(currentTurn.opponent().pawnRank(), destination.file());
                         BoardCoordinate capturedPawn = pawnFrom.step(currentTurn.opponent().pawnDirection(), 0);
@@ -550,7 +565,7 @@ public class Board {
         }
 
         // en passant
-        if (!moves.isEmpty() && moves.getLast() instanceof RegularMove lastMove) {
+        if (!moves.isEmpty() && moves.getLast().move() instanceof RegularMove lastMove) {
             if (lastMove.getPiece().type() == PieceType.PAWN) {
                 BoardCoordinate pawnFrom = new BoardCoordinate(currentPlayer.opponent().pawnRank(), lastMove.getFrom().file());
                 BoardCoordinate capturablePawn = pawnFrom.step(currentPlayer.opponent().pawnDirection(), 0);
@@ -574,7 +589,7 @@ public class Board {
                 .filter(a -> a.isPossible(this))
                 .filter(a -> {
                     Board copy = copy();
-                    copy.makeMove(a);
+                    a.execute(copy); // execute move without creating move metadata, infinite loop
                     return !copy.isInCheck(currentPlayer);
                 })
                 .toList();
@@ -616,8 +631,13 @@ public class Board {
     }
 
     public void makeMove(PlayerMove move) {
+        boolean isCapture = !isEmpty(move.getTo());
         move.execute(this);
-        moves.add(move);
+        boolean isCheck = isInCheck(currentTurn);
+        GameState state = getState();
+        boolean isCheckmate = state == GameState.WHITE_WON || state == GameState.BLACK_WON;
+        MoveRecord record = new MoveRecord(move, isCapture, isCheck, isCheckmate, state, board, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, halfMoves, numMoves);
+        moves.add(record);
     }
 
     public void makeMove(String notation) {
@@ -672,7 +692,7 @@ public class Board {
         {
             if (!moves.isEmpty()) {
                 Player opponent = currentTurn.opponent();
-                PlayerMove lastMove = moves.getLast();
+                PlayerMove lastMove = moves.getLast().move();
                 if (lastMove instanceof RegularMove regularMove) {
                     BoardCoordinate pawnFrom = new BoardCoordinate(opponent.pawnRank(), regularMove.getTo().file());
                     BoardCoordinate doubleStep = pawnFrom.step(2 * opponent.pawnDirection(), 0);
