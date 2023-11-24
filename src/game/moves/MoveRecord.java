@@ -1,11 +1,9 @@
 package game.moves;
 
-import game.GameState;
-import game.Piece;
-import game.PieceType;
-import game.Player;
+import game.*;
 
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.stream.IntStream;
 
 public record MoveRecord(
@@ -40,6 +38,28 @@ public record MoveRecord(
                 this.whiteLongCastle == that.whiteLongCastle &&
                 this.blackShortCastle == that.blackShortCastle &&
                 this.blackLongCastle == that.blackLongCastle;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof MoveRecord that)) return false;
+        return this.positionEquals(that);
+    }
+
+    @Override
+    public int hashCode() {
+        BoardCoordinate enPassantSquare = switch (move) {
+            case EnPassant enPassant -> enPassant.to();
+            default -> null;
+        };
+        return Objects.hash(
+                Arrays.deepHashCode(board),
+                whiteShortCastle,
+                whiteLongCastle,
+                blackShortCastle,
+                blackLongCastle,
+                enPassantSquare
+        );
     }
 
     public boolean gameEnded() {

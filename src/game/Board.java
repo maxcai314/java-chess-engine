@@ -3,9 +3,11 @@ package game;
 import game.moves.*;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Board {
@@ -637,7 +639,8 @@ public class Board {
         boolean isCheck = isInCheck(currentTurn);
         GameState state = getState();
         boolean isCheckmate = state == GameState.WHITE_WON || state == GameState.BLACK_WON;
-        MoveRecord record = new MoveRecord(move, isCapture, isCheck, isCheckmate, state, board, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, halfMoves, numMoves);
+        Piece[][] newBoard = Arrays.stream(board).map(Piece[]::clone).toArray(Piece[][]::new);
+        MoveRecord record = new MoveRecord(move, isCapture, isCheck, isCheckmate, state, newBoard, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, halfMoves, numMoves);
         moves.add(record);
     }
 
@@ -645,7 +648,23 @@ public class Board {
         makeMove(fromNotation(notation));
     }
 
+    public int maxRepeatedPositions() {
+        // count duplicates using Stream
+        return moves.stream()
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+                .values()
+                .stream()
+                .mapToInt(Long::intValue)
+                .max()
+                .orElse(0);
+    }
+
     public GameState getState() {
+        if (maxRepeatedPositions() >= 3)
+            return GameState.DRAW;
+        if (halfMoves >= 100)
+            return GameState.DRAW;
+
         if (getLegalMoves().isEmpty()) {
             if (isInCheck(currentTurn)) {
                 return GameState.ofWinner(currentTurn.opponent());
@@ -653,6 +672,7 @@ public class Board {
                 return GameState.DRAW;
             }
         }
+
         return GameState.UNFINISHED;
     }
 

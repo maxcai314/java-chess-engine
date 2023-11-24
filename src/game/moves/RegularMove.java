@@ -6,7 +6,7 @@ public record RegularMove(Piece piece, BoardCoordinate from, BoardCoordinate to)
 
     @Override
     public void execute(Board board) {
-        if (board.hasCastlingRights(getPlayer()) && from.file() == getPlayer().homeRank()) {
+        if (board.hasCastlingRights(getPlayer()) && from.rank() == getPlayer().homeRank()) {
             if (piece.type() == PieceType.KING) {
                 board.revokeShortCastle(getPlayer());
                 board.revokeLongCastle(getPlayer());

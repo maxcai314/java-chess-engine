@@ -3,6 +3,7 @@ package game;
 import game.moves.*;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -452,5 +453,35 @@ public class BoardTest {
             System.out.println("State: " + simulation.getState());
             System.out.println("\n");
         });
+
+        // famous opening
+        Board opening = new Board();
+        assertEquals(GameState.UNFINISHED, opening.getState());
+        opening.makeMove("e4");
+        opening.makeMove("e5");
+        opening.makeMove("Ke2");
+        opening.makeMove("Ke7"); // first repetition
+        opening.makeMove("Ke1");
+        opening.makeMove("Ke8");
+        opening.makeMove("Ke2");
+        opening.makeMove("Ke7"); // second repetition
+        opening.makeMove("Ke1");
+        opening.makeMove("Ke8");
+        opening.makeMove("Ke2");
+
+        System.out.println(opening);
+        System.out.println("Repetitions: " + opening.maxRepeatedPositions());
+        System.out.println("State: " + opening.getState());
+        System.out.println("FEN: " + opening.toFEN());
+
+        assertEquals(GameState.UNFINISHED, opening.getState());
+        opening.makeMove("Ke7"); // third repetition
+
+        System.out.println(opening);
+        System.out.println("Repetitions: " + opening.maxRepeatedPositions());
+        System.out.println("State: " + opening.getState());
+        System.out.println("FEN: " + opening.toFEN());
+
+        assertEquals(GameState.DRAW, opening.getState());
     }
 }
