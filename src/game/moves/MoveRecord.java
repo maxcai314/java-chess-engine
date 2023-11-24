@@ -27,7 +27,19 @@ public record MoveRecord(
     }
 
     public boolean positionEquals(MoveRecord that) {
-        return Arrays.deepEquals(this.board, that.board);
+        if (this.move instanceof EnPassant thisPassant) { // en passant captures must match
+            if (that.move instanceof EnPassant thatPassant) {
+                if (!thisPassant.to().equals(thatPassant.to()))
+                    return false;
+            } else
+                return false;
+        }
+
+        return Arrays.deepEquals(this.board, that.board) &&
+                this.whiteShortCastle == that.whiteShortCastle &&
+                this.whiteLongCastle == that.whiteLongCastle &&
+                this.blackShortCastle == that.blackShortCastle &&
+                this.blackLongCastle == that.blackLongCastle;
     }
 
     public boolean gameEnded() {
