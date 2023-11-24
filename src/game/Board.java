@@ -492,6 +492,10 @@ public class Board {
     }
 
     public List<PlayerMove> getLegalMoves() {
+        return getLegalMoves(currentTurn);
+    }
+
+    public List<PlayerMove> getLegalMoves(Player currentPlayer) {
         ArrayList<PlayerMove> legalMoves = new ArrayList<>();
 
         for (int rank = 0; rank < board.length; rank++) {
@@ -499,22 +503,22 @@ public class Board {
                 BoardCoordinate position = new BoardCoordinate(rank, file);
                 Piece piece = pieceAt(position);
 
-                if (piece == null || piece.owner() != currentTurn)
+                if (piece == null || piece.owner() != currentPlayer)
                     continue;
 
                 legalMoves.addAll(attacksUsingPiece(piece, position));
 
                 // pawn pushes
                 if (piece.type() == PieceType.PAWN) {
-                    BoardCoordinate singleStepFrom = position.step(currentTurn.pawnDirection(), 0);
+                    BoardCoordinate singleStepFrom = position.step(currentPlayer.pawnDirection(), 0);
                     if (isEmpty(singleStepFrom)) {
-                        if (singleStepFrom.rank() == currentTurn.opponent().homeRank()) {
+                        if (singleStepFrom.rank() == currentPlayer.opponent().homeRank()) {
                             legalMoves.addAll(List.of(Promotion.allPromotions(piece, position, singleStepFrom)));
                         } else {
                             legalMoves.add(new RegularMove(piece, position, singleStepFrom));
 
-                            BoardCoordinate doubleStepFrom = singleStepFrom.step(currentTurn.pawnDirection(), 0);
-                            if (position.rank() == currentTurn.pawnRank() && isEmpty(doubleStepFrom)) {
+                            BoardCoordinate doubleStepFrom = singleStepFrom.step(currentPlayer.pawnDirection(), 0);
+                            if (position.rank() == currentPlayer.pawnRank() && isEmpty(doubleStepFrom)) {
                                 legalMoves.add(new RegularMove(piece, position, doubleStepFrom));
                             }
                         }
@@ -523,54 +527,54 @@ public class Board {
             }
         }
 
-        if (!isInCheck(currentTurn) && canShortCastle(currentTurn)) {
+        if (!isInCheck(currentPlayer) && canShortCastle(currentPlayer)) {
             ShortCastleSearch: {
                 // check if the squares are defended
                 for (int i = 5; i < 7; i++) {
-                    BoardCoordinate coord = new BoardCoordinate(currentTurn.homeRank(), i);
+                    BoardCoordinate coord = new BoardCoordinate(currentPlayer.homeRank(), i);
                     if (!isEmpty(coord)) {
                         break ShortCastleSearch;
                     }
-                    if (isDefendedBy(currentTurn.opponent(), coord)) {
+                    if (isDefendedBy(currentPlayer.opponent(), coord)) {
                         break ShortCastleSearch;
                     }
                 }
-                legalMoves.add(Castle.shortCastle(currentTurn));
+                legalMoves.add(Castle.shortCastle(currentPlayer));
             }
         }
 
-        if (!isInCheck(currentTurn) && canLongCastle(currentTurn)) {
+        if (!isInCheck(currentPlayer) && canLongCastle(currentPlayer)) {
             LongCastleSearch: {
                 // check if the squares are defended
                 for (int i = 1; i < 4; i++) {
-                    BoardCoordinate coord = new BoardCoordinate(currentTurn.homeRank(), i);
+                    BoardCoordinate coord = new BoardCoordinate(currentPlayer.homeRank(), i);
                     if (!isEmpty(coord)) {
                         break LongCastleSearch;
                     }
-                    if (isDefendedBy(currentTurn.opponent(), coord)) {
+                    if (isDefendedBy(currentPlayer.opponent(), coord)) {
                         break LongCastleSearch;
                     }
                 }
-                legalMoves.add(Castle.longCastle(currentTurn));
+                legalMoves.add(Castle.longCastle(currentPlayer));
             }
         }
 
         // en passant
         if (!moves.isEmpty() && moves.getLast() instanceof RegularMove lastMove) {
             if (lastMove.getPiece().type() == PieceType.PAWN) {
-                BoardCoordinate pawnFrom = new BoardCoordinate(currentTurn.opponent().pawnRank(), lastMove.getFrom().file());
-                BoardCoordinate capturablePawn = pawnFrom.step(currentTurn.opponent().pawnDirection(), 0);
-                BoardCoordinate pawnTo = pawnFrom.step(2 * currentTurn.opponent().pawnDirection(), 0);
+                BoardCoordinate pawnFrom = new BoardCoordinate(currentPlayer.opponent().pawnRank(), lastMove.getFrom().file());
+                BoardCoordinate capturablePawn = pawnFrom.step(currentPlayer.opponent().pawnDirection(), 0);
+                BoardCoordinate pawnTo = pawnFrom.step(2 * currentPlayer.opponent().pawnDirection(), 0);
                 if (lastMove.getFrom().equals(pawnFrom) &&
                         lastMove.getTo().equals(pawnTo) &&
                         isEmpty(capturablePawn) && isEmpty(pawnFrom) &&
                         !isEmpty(pawnTo) &&
-                        pieceAt(pawnTo).equals(new Piece(currentTurn.opponent(), PieceType.PAWN))
+                        pieceAt(pawnTo).equals(new Piece(currentPlayer.opponent(), PieceType.PAWN))
                 ) {
-                    findAttacksOnCoordinate(new Piece(currentTurn, PieceType.PAWN), capturablePawn)
+                    findAttacksOnCoordinate(new Piece(currentPlayer, PieceType.PAWN), capturablePawn)
                         .stream()
                         .map(PlayerMove::getFrom)
-                        .map(from -> EnPassant.enPassant(currentTurn, from, capturablePawn))
+                        .map(from -> EnPassant.enPassant(currentPlayer, from, capturablePawn))
                         .forEach(legalMoves::add);
                 }
             }
@@ -581,7 +585,7 @@ public class Board {
                 .filter(a -> {
                     Board copy = copy();
                     a.execute(copy);
-                    return !copy.isInCheck(currentTurn);
+                    return !copy.isInCheck(currentPlayer);
                 })
                 .toList();
     }
@@ -630,7 +634,16 @@ public class Board {
         makeMove(fromNotation(notation));
     }
 
-    // todo: GameState
+    public GameState getState() {
+        if (getLegalMoves().isEmpty()) {
+            if (isInCheck(currentTurn)) {
+                return GameState.ofWinner(currentTurn.opponent());
+            } else {
+                return GameState.DRAW;
+            }
+        }
+        return GameState.UNFINISHED;
+    }
 
     public String toFEN() {
         StringBuilder builder = new StringBuilder();

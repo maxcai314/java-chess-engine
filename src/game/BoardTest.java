@@ -2,6 +2,10 @@ package game;
 
 import game.moves.*;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class BoardTest {
@@ -297,6 +301,10 @@ public class BoardTest {
         board.makeMove("Bg5");
         assertEquals(28, board.getLegalMoves().size()); // castle is blocked
 
+        for (PlayerMove move : board.getLegalMoves()) {
+            assertTrue(move.isPossible(board));
+        }
+
         System.out.println(board);
 
 
@@ -356,5 +364,82 @@ public class BoardTest {
         assertNotSame(board1, board2);
         assertNotSame(board1, board3);
         assertNotSame(board2, board3);
+    }
+
+    @Test
+    public void testGameState() {
+        Board board = new Board();
+
+        System.out.println(board);
+        System.out.println("\n\n");
+
+        assertEquals(GameState.UNFINISHED, board.getState());
+        board.makeMove("e4");
+        assertEquals(GameState.UNFINISHED, board.getState());
+        board.makeMove("d5");
+        assertEquals(GameState.UNFINISHED, board.getState());
+        board.makeMove("Nf3");
+        assertEquals(GameState.UNFINISHED, board.getState());
+        board.makeMove("dxe4");
+        assertEquals(GameState.UNFINISHED, board.getState());
+        board.makeMove("Ne5");
+        assertEquals(GameState.UNFINISHED, board.getState());
+        board.makeMove("f6");
+        assertEquals(GameState.UNFINISHED, board.getState());
+        board.makeMove("Qh5+");
+        assertEquals(GameState.UNFINISHED, board.getState());
+
+        assertTrue(board.isInCheck(Player.BLACK));
+        assertFalse(board.isInCheck(Player.WHITE));
+
+        System.out.println(board);
+        System.out.println("Check!");
+        System.out.println("Position: " + board.toFEN());
+        System.out.println("\n\n");
+
+        board.makeMove("g6");
+        assertEquals(GameState.UNFINISHED, board.getState());
+        board.makeMove("Bc4");
+        assertEquals(GameState.UNFINISHED, board.getState());
+        board.makeMove("gxh5");
+        assertEquals(GameState.UNFINISHED, board.getState());
+        board.makeMove("Bf7#");
+        assertEquals(GameState.WHITE_WON, board.getState());
+
+        System.out.println(board);
+        System.out.println("Checkmate!");
+        System.out.println("Position: " + board.toFEN());
+        System.out.println("Permalink to analysis: " + board.analysisLink());
+        System.out.println("\n\n");
+
+        Board endgame = Board.fromFEN("7k/5K2/8/8/8/8/6Q1/8 w - - 0 1");
+        System.out.println("Endgame Analysis:");
+        System.out.println(endgame);
+        System.out.println("\n\n");
+
+        Map<String, GameState> moves = new HashMap<>();
+        moves.put("Qg8#", GameState.WHITE_WON);
+        moves.put("Qg7#", GameState.WHITE_WON);
+        moves.put("Qg6", GameState.DRAW);
+        moves.put("Qg5", GameState.UNFINISHED);
+        moves.put("Qh1#", GameState.WHITE_WON);
+        moves.put("Qh2#", GameState.WHITE_WON);
+        moves.put("Qh3#", GameState.WHITE_WON);
+        moves.put("Qa8+", GameState.UNFINISHED);
+        moves.put("Qc2", GameState.DRAW);
+        moves.put("Qe4", GameState.DRAW);
+
+        moves.forEach((move, state) -> {
+            Board simulation = endgame.copy();
+            System.out.println("Testing move: " + move);
+            PlayerMove playerMove = simulation.fromNotation(move);
+            assertTrue(playerMove.isPossible(simulation));
+            simulation.makeMove(playerMove);
+            assertEquals(state, simulation.getState());
+            System.out.println(simulation);
+            System.out.println("Position: " + simulation.toFEN());
+            System.out.println("State: " + simulation.getState());
+            System.out.println("\n");
+        });
     }
 }
