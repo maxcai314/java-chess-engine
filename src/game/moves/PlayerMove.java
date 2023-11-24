@@ -4,18 +4,18 @@ import game.*;
 
 public sealed interface PlayerMove extends BoardCommand permits RegularMove, Castle, EnPassant, Promotion {
     @Override
-    public abstract void execute(Board board);
+    void execute(Board board);
 
-    public abstract boolean isPossible(Board board);
+    boolean isPossible(Board board);
 
-    public abstract Piece piece();
+    Piece piece();
 
-    public abstract BoardCoordinate from();
+    BoardCoordinate from();
 
-    public abstract BoardCoordinate to();
+    BoardCoordinate to();
 
-    public abstract Player getPlayer();
+    Player getPlayer();
 
     @Override
-    public abstract String toString();
+    String toString();
 }
