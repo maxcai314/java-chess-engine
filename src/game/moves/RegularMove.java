@@ -4,58 +4,58 @@ import game.*;
 
 public record RegularMove(Piece piece, BoardCoordinate from, BoardCoordinate to) implements PlayerMove {
 
-    @Override
-    public void execute(Board board) {
-        if (board.hasCastlingRights(getPlayer()) && from.rank() == getPlayer().homeRank()) {
-            if (piece.type() == PieceType.KING) {
-                board.revokeShortCastle(getPlayer());
-                board.revokeLongCastle(getPlayer());
-            } else if (piece.type() == PieceType.ROOK) {
-                if (from.file() == 0) {
-                    board.revokeLongCastle(getPlayer());
-                } else if (from.file() == 7) {
-                    board.revokeShortCastle(getPlayer());
-                }
-            }
-        }
+	@Override
+	public void execute(Board board) {
+		if (board.hasCastlingRights(getPlayer()) && from.rank() == getPlayer().homeRank()) {
+			if (piece.type() == PieceType.KING) {
+				board.revokeShortCastle(getPlayer());
+				board.revokeLongCastle(getPlayer());
+			} else if (piece.type() == PieceType.ROOK) {
+				if (from.file() == 0) {
+					board.revokeLongCastle(getPlayer());
+				} else if (from.file() == 7) {
+					board.revokeShortCastle(getPlayer());
+				}
+			}
+		}
 
-        boolean isCapture = board.pieceAt(to) != null;
-        boolean isPawnMove = piece.type() == PieceType.PAWN;
+		boolean isCapture = board.pieceAt(to) != null;
+		boolean isPawnMove = piece.type() == PieceType.PAWN;
 
-        board.placePiece(piece, to);
-        board.removePiece(from);
+		board.placePiece(piece, to);
+		board.removePiece(from);
 
-        board.switchTurn();
+		board.switchTurn();
 
-        board.incrementNumMoves();
-        if (isCapture || isPawnMove) board.resetHalfMoves();
-        else board.incrementHalfMoves();
-    }
+		board.incrementNumMoves();
+		if (isCapture || isPawnMove) board.resetHalfMoves();
+		else board.incrementHalfMoves();
+	}
 
-    @Override
-    public boolean isPossible(Board board) {
-        if (!from.isValid() || !to.isValid()) return false;
+	@Override
+	public boolean isPossible(Board board) {
+		if (!from.isValid() || !to.isValid()) return false;
 
-        if (piece == null) return false;
-        if (!board.isEmpty(to) && board.pieceAt(to).owner() == getPlayer()) return false;
-        if (!piece.equals(board.pieceAt(from))) return false;
-        return true; //todo: add isInCheck to determine legality on a boardcopy
-    }
+		if (piece == null) return false;
+		if (!board.isEmpty(to) && board.pieceAt(to).owner() == getPlayer()) return false;
+		if (!piece.equals(board.pieceAt(from))) return false;
+		return true; //todo: add isInCheck to determine legality on a boardcopy
+	}
 
-    @Override
-    public Player getPlayer() {
-        return piece.owner();
-    }
+	@Override
+	public Player getPlayer() {
+		return piece.owner();
+	}
 
-    @Override
-    public String toString() {
-        if (piece.type() == PieceType.PAWN) {
-            if (to.file() == from.file()) {
-                return String.format("%s%s", from, to);
-            } else {
-                return String.format("%sx%s", from, to);
-            }
-        }
-        return String.format("%c%s%s", Character.toUpperCase(piece.toChar()), from, to);
-    }
+	@Override
+	public String toString() {
+		if (piece.type() == PieceType.PAWN) {
+			if (to.file() == from.file()) {
+				return String.format("%s%s", from, to);
+			} else {
+				return String.format("%sx%s", from, to);
+			}
+		}
+		return String.format("%c%s%s", Character.toUpperCase(piece.toChar()), from, to);
+	}
 }

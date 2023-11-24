@@ -1,5 +1,5 @@
 package game;
 
 public interface BoardCommand {
-    void execute(Board board);
+	void execute(Board board);
 }

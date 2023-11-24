@@ -3,19 +3,19 @@ package game.moves;
 import game.*;
 
 public sealed interface PlayerMove extends BoardCommand permits RegularMove, Castle, EnPassant, Promotion {
-    @Override
-    void execute(Board board);
+	@Override
+	void execute(Board board);
 
-    boolean isPossible(Board board);
+	boolean isPossible(Board board);
 
-    Piece piece();
+	Piece piece();
 
-    BoardCoordinate from();
+	BoardCoordinate from();
 
-    BoardCoordinate to();
+	BoardCoordinate to();
 
-    Player getPlayer();
+	Player getPlayer();
 
-    @Override
-    String toString();
+	@Override
+	String toString();
 }
