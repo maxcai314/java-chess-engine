@@ -360,10 +360,21 @@ public class BoardTest {
         Board board1 = new Board();
         Board board2 = new Board();
         Board board3 = board1.copy();
+        Board board4 = Board.fromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 10 10"); // identical
+        Board board5 = Board.fromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1"); // no castling rights
 
         assertNotSame(board1, board2);
         assertNotSame(board1, board3);
         assertNotSame(board2, board3);
+        assertNotSame(board1, board4);
+        assertNotSame(board1, board5);
+
+        assertEquals(board1, board2);
+        assertEquals(board1, board3);
+        assertEquals(board2, board3);
+        assertEquals(board1, board4);
+
+        assertNotEquals(board1, board5);
     }
 
     @Test

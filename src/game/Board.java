@@ -2,9 +2,7 @@ package game;
 
 import game.moves.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,7 +34,7 @@ public class Board {
 
     private int numMoves; // number of moves both players have made; divide by two to use
 
-    public Board(Piece[][] board, Player currentTurn, ArrayList<PlayerMove> moves, boolean whiteShortCastle, boolean whiteLongCastle, boolean blackShortCastle, boolean blackLongCastle, int halfMoves, int numMoves) {
+    private Board(Piece[][] board, Player currentTurn, ArrayList<PlayerMove> moves, boolean whiteShortCastle, boolean whiteLongCastle, boolean blackShortCastle, boolean blackLongCastle, int halfMoves, int numMoves) {
         this.board = Arrays.stream(board).map(Piece[]::clone).toArray(Piece[][]::new);
         this.currentTurn = currentTurn;
         this.moves = moves;
@@ -700,6 +698,20 @@ public class Board {
                 .append(numMoves / 2 + 1);
 
         return builder.toString();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Board other) {
+            String thisFEN = this.toFEN();
+            String otherFEN = other.toFEN();
+
+            // compare FENs, but only look at first 3 words
+            String[] thisWords = Arrays.stream(thisFEN.split("\\s+")).limit(3).toArray(String[]::new);
+            String[] otherWords = Arrays.stream(otherFEN.split("\\s+")).limit(3).toArray(String[]::new);
+            return Arrays.equals(thisWords, otherWords);
+        }
+        return false;
     }
 
     @Override
