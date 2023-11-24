@@ -2,18 +2,12 @@ package game.moves;
 
 import game.*;
 
-public final class Promotion extends PlayerMove {
-    private final Piece newPiece;
-    private final Piece oldPiece;
-    private final BoardCoordinate from;
-    private final BoardCoordinate to;
-
-    public Promotion(Piece newPiece, Piece oldPiece, BoardCoordinate from, BoardCoordinate to) {
-        this.newPiece = newPiece;
-        this.oldPiece = oldPiece;
-        this.from = from;
-        this.to = to;
-    }
+public record Promotion(
+        Piece newPiece,
+        Piece oldPiece,
+        BoardCoordinate from,
+        BoardCoordinate to
+) implements PlayerMove {
 
     public static Promotion[] allPromotions(Piece piece, BoardCoordinate from, BoardCoordinate to) {
         return new Promotion[] {
@@ -54,17 +48,17 @@ public final class Promotion extends PlayerMove {
     }
 
     @Override
-    public Piece getPiece() {
+    public Piece piece() {
         return oldPiece;
     }
 
     @Override
-    public BoardCoordinate getFrom() {
+    public BoardCoordinate from() {
         return from;
     }
 
     @Override
-    public BoardCoordinate getTo() {
+    public BoardCoordinate to() {
         return to;
     }
 

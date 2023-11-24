@@ -228,12 +228,12 @@ public class Board {
 
                 // en passant if it exists
                 if (!moves.isEmpty() && moves.getLast().move() instanceof RegularMove lastMove) {
-                    if (lastMove.getPiece().type() == PieceType.PAWN && lastMove.getFrom().file() == destination.file()) {
+                    if (lastMove.piece().type() == PieceType.PAWN && lastMove.from().file() == destination.file()) {
                         BoardCoordinate pawnFrom = new BoardCoordinate(currentTurn.opponent().pawnRank(), destination.file());
                         BoardCoordinate capturedPawn = pawnFrom.step(currentTurn.opponent().pawnDirection(), 0);
                         BoardCoordinate pawnTo = pawnFrom.step(2 * currentTurn.opponent().pawnDirection(), 0);
-                        if (lastMove.getFrom().equals(pawnFrom) &&
-                            lastMove.getTo().equals(pawnTo) &&
+                        if (lastMove.from().equals(pawnFrom) &&
+                            lastMove.to().equals(pawnTo) &&
                             isEmpty(capturedPawn) && isEmpty(pawnFrom) &&
                             !isEmpty(pawnTo) &&
                             pieceAt(pawnTo).equals(new Piece(currentTurn.opponent(), PieceType.PAWN)) &&
@@ -247,7 +247,7 @@ public class Board {
                 ArrayList<PlayerMove> candidates = new ArrayList<>(findAttacksOnCoordinate(pawn, destination));
 
                 List<PlayerMove> possible = candidates.stream()
-                        .filter(a -> a.getFrom().file() == file)
+                        .filter(a -> a.from().file() == file)
                         .toList(); // todo: find stream operation to findFirst, and throw if none or more than one
 
                 if (possible.isEmpty()) throw new IllegalArgumentException("Invalid pawn position: " + text);
@@ -294,10 +294,10 @@ public class Board {
         Predicate<PlayerMove> filter;
         if ("abcdefgh".contains(context.substring(1))) { // rank specified
             int file = context.charAt(1) - 'a';
-            filter = a -> a.getFrom().file() == file;
+            filter = a -> a.from().file() == file;
         } else if ("12345678".contains(context.substring(1))) { // file specified
             int rank = context.charAt(1) - '1';
-            filter = a -> a.getFrom().rank() == rank;
+            filter = a -> a.from().rank() == rank;
         } else {
             throw new IllegalArgumentException("Invalid context string: " + context);
         }
@@ -386,8 +386,9 @@ public class Board {
                         .flatMap(a ->
                         a.rank() == piece.owner().opponent().homeRank() ?
                             Stream.of(Promotion.allPromotions(piece, position, a)) :
-                            Stream.of(new RegularMove(piece, position, a)
-                        ))
+                            Stream.of(new RegularMove(piece, position, a))
+                        )
+                        .map(PlayerMove.class::cast)
                         .toList();
 
             case KNIGHT ->
@@ -458,8 +459,8 @@ public class Board {
         return attacksUsingPiece(enemy, position)
                 .stream()
                 .filter(a -> a instanceof RegularMove) // promotions can't become attacks
-                .filter(a -> piece.equals(pieceAt(a.getTo())))
-                .map(a -> (PlayerMove) new RegularMove(piece, a.getTo(), a.getFrom())) // reverse move
+                .filter(a -> piece.equals(pieceAt(a.to())))
+                .map(a -> (PlayerMove) new RegularMove(piece, a.to(), a.from())) // reverse move
                 .toList();
     }
 
@@ -480,7 +481,7 @@ public class Board {
         Player player = opponent.opponent();
         return Stream.of(ATTACKING_PIECES)
                 .flatMap(pieceType -> attacksUsingPiece(new Piece(player, pieceType), position).stream())
-                .anyMatch(move -> pieceAt(move.getTo()) != null && move.getPiece().type() == pieceAt(move.getTo()).type());
+                .anyMatch(move -> pieceAt(move.to()) != null && move.piece().type() == pieceAt(move.to()).type());
     }
 
     public boolean isInCheck(Player player) {
@@ -566,19 +567,19 @@ public class Board {
 
         // en passant
         if (!moves.isEmpty() && moves.getLast().move() instanceof RegularMove lastMove) {
-            if (lastMove.getPiece().type() == PieceType.PAWN) {
-                BoardCoordinate pawnFrom = new BoardCoordinate(currentPlayer.opponent().pawnRank(), lastMove.getFrom().file());
+            if (lastMove.piece().type() == PieceType.PAWN) {
+                BoardCoordinate pawnFrom = new BoardCoordinate(currentPlayer.opponent().pawnRank(), lastMove.from().file());
                 BoardCoordinate capturablePawn = pawnFrom.step(currentPlayer.opponent().pawnDirection(), 0);
                 BoardCoordinate pawnTo = pawnFrom.step(2 * currentPlayer.opponent().pawnDirection(), 0);
-                if (lastMove.getFrom().equals(pawnFrom) &&
-                        lastMove.getTo().equals(pawnTo) &&
+                if (lastMove.from().equals(pawnFrom) &&
+                        lastMove.to().equals(pawnTo) &&
                         isEmpty(capturablePawn) && isEmpty(pawnFrom) &&
                         !isEmpty(pawnTo) &&
                         pieceAt(pawnTo).equals(new Piece(currentPlayer.opponent(), PieceType.PAWN))
                 ) {
                     findAttacksOnCoordinate(new Piece(currentPlayer, PieceType.PAWN), capturablePawn)
                         .stream()
-                        .map(PlayerMove::getFrom)
+                        .map(PlayerMove::from)
                         .map(from -> EnPassant.enPassant(currentPlayer, from, capturablePawn))
                         .forEach(legalMoves::add);
                 }
@@ -631,7 +632,7 @@ public class Board {
     }
 
     public void makeMove(PlayerMove move) {
-        boolean isCapture = !isEmpty(move.getTo());
+        boolean isCapture = !isEmpty(move.to());
         move.execute(this);
         boolean isCheck = isInCheck(currentTurn);
         GameState state = getState();
@@ -694,9 +695,9 @@ public class Board {
                 Player opponent = currentTurn.opponent();
                 PlayerMove lastMove = moves.getLast().move();
                 if (lastMove instanceof RegularMove regularMove) {
-                    BoardCoordinate pawnFrom = new BoardCoordinate(opponent.pawnRank(), regularMove.getTo().file());
+                    BoardCoordinate pawnFrom = new BoardCoordinate(opponent.pawnRank(), regularMove.to().file());
                     BoardCoordinate doubleStep = pawnFrom.step(2 * opponent.pawnDirection(), 0);
-                    if (regularMove.getPiece().type() == PieceType.PAWN && regularMove.getFrom().equals(pawnFrom) && regularMove.getTo().equals(doubleStep)) {
+                    if (regularMove.piece().type() == PieceType.PAWN && regularMove.from().equals(pawnFrom) && regularMove.to().equals(doubleStep)) {
                         builder.append(pawnFrom.step(opponent.pawnDirection(), 0)).append(" ");
                         break EnPassant;
                     }

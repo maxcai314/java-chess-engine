@@ -246,8 +246,8 @@ public class BoardTest {
             assertTrue(playerMove.isPossible(board));
 
             PlayerMove[] illegalMoves = new PlayerMove[] {
-                new Promotion(new Piece(playerMove.getPlayer(), PieceType.KING), playerMove.getPiece(), playerMove.getFrom(), playerMove.getTo()),
-                new Promotion(new Piece(playerMove.getPlayer(), PieceType.ROOK), playerMove.getPiece(), playerMove.getFrom(), playerMove.getTo()),
+                new Promotion(new Piece(playerMove.getPlayer(), PieceType.KING), playerMove.piece(), playerMove.from(), playerMove.to()),
+                new Promotion(new Piece(playerMove.getPlayer(), PieceType.ROOK), playerMove.piece(), playerMove.from(), playerMove.to()),
                 Castle.longCastle(playerMove.getPlayer()),
                 EnPassant.enPassant(playerMove.getPlayer(), BoardCoordinate.fromString("a1"), BoardCoordinate.fromString("a2")),
                 new RegularMove(new Piece(playerMove.getPlayer(), PieceType.ROOK), BoardCoordinate.fromString("a1"), BoardCoordinate.fromString("a2"))

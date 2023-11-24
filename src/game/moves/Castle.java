@@ -2,8 +2,42 @@ package game.moves;
 
 import game.*;
 
-public final class Castle extends PlayerMove {
-    // todo: make this an enum instead of a class
+public enum Castle implements PlayerMove {
+    WHITE_LONG(
+            new Piece(Player.WHITE, PieceType.KING),
+            new BoardCoordinate(0, 4), new BoardCoordinate(0, 2),
+            new Piece(Player.WHITE, PieceType.ROOK), new BoardCoordinate(0, 0),
+            new BoardCoordinate(0, 3),
+            "O-O-O"
+    ),
+    WHITE_SHORT(
+            new Piece(Player.WHITE, PieceType.KING),
+            new BoardCoordinate(0, 4),
+            new BoardCoordinate(0, 6),
+            new Piece(Player.WHITE, PieceType.ROOK),
+            new BoardCoordinate(0, 7),
+            new BoardCoordinate(0, 5),
+            "O-O"
+    ),
+    BLACK_LONG(
+            new Piece(Player.BLACK, PieceType.KING),
+            new BoardCoordinate(7, 4),
+            new BoardCoordinate(7, 2),
+            new Piece(Player.BLACK, PieceType.ROOK),
+            new BoardCoordinate(7, 0),
+            new BoardCoordinate(7, 3),
+            "O-O-O"
+    ),
+    BLACK_SHORT(
+            new Piece(Player.BLACK, PieceType.KING),
+            new BoardCoordinate(7, 4),
+            new BoardCoordinate(7, 6),
+            new Piece(Player.BLACK, PieceType.ROOK),
+            new BoardCoordinate(7, 7),
+            new BoardCoordinate(7, 5),
+            "O-O"
+    );
+
     private final Piece king;
     private final BoardCoordinate from;
     private final BoardCoordinate to;
@@ -11,27 +45,30 @@ public final class Castle extends PlayerMove {
     private final BoardCoordinate rookFrom;
     private final BoardCoordinate rookTo;
 
-    private Castle(Piece king, BoardCoordinate from, BoardCoordinate to, Piece rook, BoardCoordinate rookFrom, BoardCoordinate rookTo) {
+    private final String notation;
+
+    Castle(Piece king, BoardCoordinate from, BoardCoordinate to, Piece rook, BoardCoordinate rookFrom, BoardCoordinate rookTo, String notation) {
         this.king = king;
         this.from = from;
         this.to = to;
         this.rook = rook;
         this.rookFrom = rookFrom;
         this.rookTo = rookTo;
+        this.notation = notation;
     }
 
     public static Castle longCastle(Player player) {
-        Piece king = new Piece(player, PieceType.KING);
-        Piece rook = new Piece(player, PieceType.ROOK);
-        int rank = player.homeRank();
-        return new Castle(king, new BoardCoordinate(rank, 4), new BoardCoordinate(rank, 2), rook, new BoardCoordinate(rank, 0), new BoardCoordinate(rank, 3));
+        return switch (player) {
+            case WHITE -> WHITE_LONG;
+            case BLACK -> BLACK_LONG;
+        };
     }
 
     public static Castle shortCastle(Player player) {
-        Piece king = new Piece(player, PieceType.KING);
-        Piece rook = new Piece(player, PieceType.ROOK);
-        int rank = player.homeRank();
-        return new Castle(king, new BoardCoordinate(rank, 4), new BoardCoordinate(rank, 6), rook, new BoardCoordinate(rank, 7), new BoardCoordinate(rank, 5));
+        return switch (player) {
+            case WHITE -> WHITE_SHORT;
+            case BLACK -> BLACK_SHORT;
+        };
     }
 
     @Override
@@ -53,48 +90,32 @@ public final class Castle extends PlayerMove {
     @Override
     public boolean isPossible(Board board) {
         if (!board.hasCastlingRights(getPlayer())) return false;
-        if (!from.isValid() || !to.isValid()) return false;
-        if (!from.equals(new BoardCoordinate(getPlayer().homeRank(), 4))) return false;
-        if (!(rookFrom.equals(new BoardCoordinate(getPlayer().homeRank(), 0)) || rookFrom.equals(new BoardCoordinate(getPlayer().homeRank(), 7)))) return false;
-        else if (board.pieceAt(to) != null) return false;
 
-        if (king == null) return false;
-        if (rook == null) return false;
-        if (king.type() != PieceType.KING) return false;
-        if (rook.type() != PieceType.ROOK) return false;
-        if (king.owner() != rook.owner()) return false;
         if (!king.equals(board.pieceAt(from))) return false;
         if (!rook.equals(board.pieceAt(rookFrom))) return false;
+        if (!board.isEmpty(to)) return false;
         for (int i = Math.min(from.file(), to.file()) + 1; i < Math.max(from.file(), to.file()); i++) {
-            if (board.pieceAt(new BoardCoordinate(from.rank(), i)) != null) return false;
-        }
-        // todo: check if the squares are defended
-
-        switch (rookFrom.file()) {
-            case 0 -> {
-                if (!board.canLongCastle(getPlayer())) return false;
-            }
-            case 7 -> {
-                if (!board.canShortCastle(getPlayer())) return false;
-            }
-            default -> throw new IllegalStateException("Rook is not on the edge of the board: " + rookFrom);
+            if (!board.isEmpty(new BoardCoordinate(from.rank(), i))) return false;
         }
 
-        return true;
+        return switch (this) {
+            case BLACK_SHORT, WHITE_SHORT -> board.canShortCastle(getPlayer());
+            case BLACK_LONG, WHITE_LONG -> board.canLongCastle(getPlayer());
+        };
     }
 
     @Override
-    public Piece getPiece() {
+    public Piece piece() {
         return king;
     }
 
     @Override
-    public BoardCoordinate getFrom() {
+    public BoardCoordinate from() {
         return from;
     }
 
     @Override
-    public BoardCoordinate getTo() {
+    public BoardCoordinate to() {
         return to;
     }
 
@@ -117,10 +138,6 @@ public final class Castle extends PlayerMove {
 
     @Override
     public String toString() {
-        return switch (rookFrom.file()) {
-            case 0 -> "O-O-O";
-            case 7 -> "O-O";
-            default -> throw new IllegalStateException("Rook is not on the edge of the board: " + rookFrom);
-        };
+        return notation;
     }
 }

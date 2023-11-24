@@ -2,19 +2,17 @@ package game.moves;
 
 import game.*;
 
-public sealed abstract class PlayerMove implements BoardCommand permits RegularMove, Castle, EnPassant, Promotion {
-    // todo: make an interface instead of an abstract class
-
+public sealed interface PlayerMove extends BoardCommand permits RegularMove, Castle, EnPassant, Promotion {
     @Override
     public abstract void execute(Board board);
 
     public abstract boolean isPossible(Board board);
 
-    public abstract Piece getPiece();
+    public abstract Piece piece();
 
-    public abstract BoardCoordinate getFrom();
+    public abstract BoardCoordinate from();
 
-    public abstract BoardCoordinate getTo();
+    public abstract BoardCoordinate to();
 
     public abstract Player getPlayer();
 

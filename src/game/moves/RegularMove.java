@@ -2,16 +2,7 @@ package game.moves;
 
 import game.*;
 
-public final class RegularMove extends PlayerMove {
-    private final Piece piece;
-    private final BoardCoordinate from;
-    private final BoardCoordinate to;
-
-    public RegularMove(Piece piece, BoardCoordinate from, BoardCoordinate to) {
-        this.piece = piece;
-        this.from = from;
-        this.to = to;
-    }
+public record RegularMove(Piece piece, BoardCoordinate from, BoardCoordinate to) implements PlayerMove {
 
     @Override
     public void execute(Board board) {
@@ -19,12 +10,10 @@ public final class RegularMove extends PlayerMove {
             if (piece.type() == PieceType.KING) {
                 board.revokeShortCastle(getPlayer());
                 board.revokeLongCastle(getPlayer());
-            }
-            else if (piece.type() == PieceType.ROOK) {
+            } else if (piece.type() == PieceType.ROOK) {
                 if (from.file() == 0) {
                     board.revokeLongCastle(getPlayer());
-                }
-                else if (from.file() == 7) {
+                } else if (from.file() == 7) {
                     board.revokeShortCastle(getPlayer());
                 }
             }
@@ -54,21 +43,6 @@ public final class RegularMove extends PlayerMove {
     }
 
     @Override
-    public Piece getPiece() {
-        return piece;
-    }
-
-    @Override
-    public BoardCoordinate getFrom() {
-        return from;
-    }
-
-    @Override
-    public BoardCoordinate getTo() {
-        return to;
-    }
-
-    @Override
     public Player getPlayer() {
         return piece.owner();
     }
@@ -76,7 +50,7 @@ public final class RegularMove extends PlayerMove {
     @Override
     public String toString() {
         if (piece.type() == PieceType.PAWN) {
-            if (to.file() == from.file()){
+            if (to.file() == from.file()) {
                 return String.format("%s%s", from, to);
             } else {
                 return String.format("%sx%s", from, to);

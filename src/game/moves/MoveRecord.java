@@ -40,26 +40,26 @@ public record MoveRecord(
             case RegularMove regularMove -> {
                 StringBuilder result = new StringBuilder();
 
-                if (!(regularMove.getPiece().type() == PieceType.PAWN)) {
-                    result.append(regularMove.getPiece().type().toChar());
+                if (!(regularMove.piece().type() == PieceType.PAWN)) {
+                    result.append(regularMove.piece().type().toChar());
                     // check how many pieces are in the given file
                     int fileCount = (int) IntStream.range(0, 8)
-                        .mapToObj(i -> board[i][regularMove.getFrom().file()])
-                        .filter(move.getPiece()::equals)
+                        .mapToObj(i -> board[i][regularMove.from().file()])
+                        .filter(move.piece()::equals)
                         .count();
-                    int rankCount = (int) Arrays.stream(board[regularMove.getFrom().rank()])
-                        .filter(move.getPiece()::equals)
+                    int rankCount = (int) Arrays.stream(board[regularMove.from().rank()])
+                        .filter(move.piece()::equals)
                         .count();
 
                     if (fileCount > 1)
-                        result.append(regularMove.getFrom().toString().charAt(0)); // specify file
+                        result.append(regularMove.from().toString().charAt(0)); // specify file
                     if (rankCount > 1)
-                        result.append(regularMove.getFrom().toString().charAt(1)); // specify rank
-                } else if (isCapture) result.append(regularMove.getFrom().toString().charAt(0)); // specify file
+                        result.append(regularMove.from().toString().charAt(1)); // specify rank
+                } else if (isCapture) result.append(regularMove.from().toString().charAt(0)); // specify file
 
                 if (isCapture) result.append("x");
 
-                result.append(regularMove.getTo().toString());
+                result.append(regularMove.to().toString());
 
                 if (isMate) result.append("#");
                 else if (isCheck) result.append("+");
@@ -71,11 +71,11 @@ public record MoveRecord(
                 StringBuilder result = new StringBuilder();
 
                 if (isCapture()) {
-                    result.append(promotion.getFrom().toString().charAt(0)) // specify file
+                    result.append(promotion.from().toString().charAt(0)) // specify file
                             .append("x");
                 }
 
-                result.append(promotion.getTo().toString())
+                result.append(promotion.to().toString())
                         .append("=")
                         .append(promotion.getNewPiece().type().toChar());
 

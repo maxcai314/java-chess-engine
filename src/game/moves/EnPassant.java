@@ -2,20 +2,13 @@ package game.moves;
 
 import game.*;
 
-public final class EnPassant extends PlayerMove {
-    private final Piece pawn;
-    private final BoardCoordinate from;
-    private final BoardCoordinate to;
-    private final Piece capturedPawn;
-    private final BoardCoordinate capturedPawnCoordinates;
-
-    private EnPassant(Piece pawn, BoardCoordinate from, BoardCoordinate to, Piece capturedPawn, BoardCoordinate capturedPawnCoordinates) {
-        this.pawn = pawn;
-        this.from = from;
-        this.to = to;
-        this.capturedPawn = capturedPawn;
-        this.capturedPawnCoordinates = capturedPawnCoordinates;
-    }
+public record EnPassant(
+        Piece pawn,
+        BoardCoordinate from,
+        BoardCoordinate to,
+        Piece capturedPawn,
+        BoardCoordinate capturedPawnCoordinates
+) implements PlayerMove {
 
     public static EnPassant enPassant(Player player, BoardCoordinate from, BoardCoordinate to) {
         return new EnPassant(new Piece(player, PieceType.PAWN), from, to, new Piece(player.opponent(), PieceType.PAWN), new BoardCoordinate(from.rank(), to.file()));
@@ -47,17 +40,17 @@ public final class EnPassant extends PlayerMove {
     }
 
     @Override
-    public Piece getPiece() {
+    public Piece piece() {
         return pawn;
     }
 
     @Override
-    public BoardCoordinate getFrom() {
+    public BoardCoordinate from() {
         return from;
     }
 
     @Override
-    public BoardCoordinate getTo() {
+    public BoardCoordinate to() {
         return to;
     }
 
