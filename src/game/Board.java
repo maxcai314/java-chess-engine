@@ -98,15 +98,7 @@ public class Board {
             return new Board(board, Player.WHITE, new ArrayList<PlayerMove>(), true, true, true, true, 0, 0);
         }
 
-        Player currentPlayer = switch (words[1].charAt(0)) {
-            case 'w' -> {
-                yield Player.WHITE;
-            }
-            case 'b' -> {
-                yield Player.BLACK;
-            } // todo: make Player.fromChar();
-            default -> throw new IllegalArgumentException("Invalid Player FEN: " + text);
-        };
+        Player currentPlayer = Player.fromChar(words[1].charAt(0));
 
         if (words.length == 2) {
             return new Board(board, currentPlayer, new ArrayList<PlayerMove>(), true, true, true, true, 0, 0);
@@ -582,7 +574,7 @@ public class Board {
                 .filter(a -> a.isPossible(this))
                 .filter(a -> {
                     Board copy = copy();
-                    a.execute(copy);
+                    copy.makeMove(a);
                     return !copy.isInCheck(currentPlayer);
                 })
                 .toList();
