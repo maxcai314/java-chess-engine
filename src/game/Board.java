@@ -5,6 +5,7 @@ import game.moves.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -142,22 +143,15 @@ public class Board {
 			Piece opponentPawn = new Piece(opponent, PieceType.PAWN);
 			BoardCoordinate opponentPawnFrom = new BoardCoordinate(opponent.pawnRank(), possibleCapture.file());
 			BoardCoordinate opponentPawnTo = opponentPawnFrom.step(2 * opponent.pawnDirection(), 0);
-			BoardCoordinate capturedPawn = opponentPawnFrom.step(opponent.pawnDirection(), 0);
-			if (capturedPawn.equals(possibleCapture))
-				prevMoves.add(new MoveRecord(
-						new RegularMove(opponentPawn, opponentPawnFrom, opponentPawnTo),
-						false,
-						result.isInCheck(currentPlayer),
-						false,
-						GameState.UNFINISHED,
-						board,
-						whiteShortCastle,
-						whiteLongCastle,
-						blackShortCastle,
-						blackLongCastle,
-						result.halfMoves,
-						result.numMoves
-				));
+			BoardCoordinate captureTile = opponentPawnFrom.step(opponent.pawnDirection(), 0);
+
+			if (captureTile.equals(possibleCapture)) {
+				// figure out the previous board
+				board[opponentPawnFrom.rank()][opponentPawnFrom.file()] = opponentPawn;
+				board[opponentPawnTo.rank()][opponentPawnTo.file()] = null;
+				result = new Board(board, opponent, prevMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, 0, result.numMoves - 1);
+				result.makeMove(new RegularMove(opponentPawn, opponentPawnFrom, opponentPawnTo));
+			}
 		}
 		return result;
 	}
@@ -505,6 +499,7 @@ public class Board {
 		return getLegalMoves(currentTurn);
 	}
 
+	// todo: return a Set<>
 	public List<PlayerMove> getLegalMoves(Player currentPlayer) {
 		ArrayList<PlayerMove> legalMoves = new ArrayList<>();
 
@@ -636,13 +631,9 @@ public class Board {
 	}
 
 	public void makeMove(PlayerMove move) {
-		boolean isCapture = !isEmpty(move.to());
+		Board prevBoard = copy();
 		move.execute(this);
-		boolean isCheck = isInCheck(currentTurn);
-		GameState state = getState();
-		boolean isCheckmate = state == GameState.WHITE_WON || state == GameState.BLACK_WON;
-		Piece[][] newBoard = Arrays.stream(board).map(Piece[]::clone).toArray(Piece[][]::new);
-		MoveRecord record = new MoveRecord(move, isCapture, isCheck, isCheckmate, state, newBoard, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, halfMoves, numMoves);
+		MoveRecord record = new MoveRecord(prevBoard, move);
 		moves.add(record);
 	}
 
@@ -744,9 +735,16 @@ public class Board {
 			// compare FENs, but only look at first 3 words
 			String[] thisWords = Arrays.stream(thisFEN.split("\\s+")).limit(3).toArray(String[]::new);
 			String[] otherWords = Arrays.stream(otherFEN.split("\\s+")).limit(3).toArray(String[]::new);
-			return Arrays.equals(thisWords, otherWords);
+			return Arrays.deepEquals(thisWords, otherWords);
 		}
 		return false;
+	}
+
+	@Override
+	public int hashCode() {
+		return Arrays.deepHashCode(
+				Arrays.stream(toFEN().split("\\s+")).limit(3).toArray(String[]::new)
+		);
 	}
 
 	@Override
