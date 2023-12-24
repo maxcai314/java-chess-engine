@@ -5,7 +5,7 @@ import game.moves.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -702,22 +702,10 @@ public class Board {
 
 		builder.append(" ");
 
-		EnPassant:
-		{
-			if (!moves.isEmpty()) {
-				Player opponent = currentTurn.opponent();
-				PlayerMove lastMove = moves.getLast().move();
-				if (lastMove instanceof RegularMove regularMove) {
-					BoardCoordinate pawnFrom = new BoardCoordinate(opponent.pawnRank(), regularMove.to().file());
-					BoardCoordinate doubleStep = pawnFrom.step(2 * opponent.pawnDirection(), 0);
-					if (regularMove.piece().type() == PieceType.PAWN && regularMove.from().equals(pawnFrom) && regularMove.to().equals(doubleStep)) {
-						builder.append(pawnFrom.step(opponent.pawnDirection(), 0)).append(" ");
-						break EnPassant;
-					}
-				}
-			}
-			builder.append("- ");
-		}
+		Optional<PlayerMove> passants = getLegalMoves().stream()
+				.filter(a -> a instanceof EnPassant)
+				.findAny();
+		passants.ifPresentOrElse(playerMove -> builder.append(playerMove.to()).append(" "), () -> builder.append("- "));
 
 		builder.append(halfMoves)
 				.append(" ")
