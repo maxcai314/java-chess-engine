@@ -2,7 +2,7 @@ package game.moves;
 
 import game.*;
 
-import java.util.List;
+import java.util.Set;
 
 public record MoveRecord(
 		Board prevBoard,
@@ -73,7 +73,7 @@ public record MoveRecord(
 		if (move instanceof Castle castle) {
 			sb.append(castle); // we're not done, what if check/mate?
 		} else { // we have to format like a normal move
-			List<PlayerMove> legalMoves = prevBoard().getLegalMoves();
+			Set<PlayerMove> legalMoves = prevBoard().getLegalMoves();
 			boolean rankAmbiguous = legalMoves.stream()
 					.filter(a -> a.piece() == move().piece())
 					.map(PlayerMove::from)

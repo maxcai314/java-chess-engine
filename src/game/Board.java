@@ -2,10 +2,7 @@ package game;
 
 import game.moves.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -495,12 +492,11 @@ public class Board {
 		throw new IllegalStateException("King not found");
 	}
 
-	public List<PlayerMove> getLegalMoves() {
+	public Set<PlayerMove> getLegalMoves() {
 		return getLegalMoves(currentTurn);
 	}
 
-	// todo: return a Set<>
-	public List<PlayerMove> getLegalMoves(Player currentPlayer) {
+	public Set<PlayerMove> getLegalMoves(Player currentPlayer) {
 		ArrayList<PlayerMove> legalMoves = new ArrayList<>();
 
 		for (int rank = 0; rank < board.length; rank++) {
@@ -592,7 +588,7 @@ public class Board {
 					a.execute(copy); // execute move without creating move metadata, infinite loop
 					return !copy.isInCheck(currentPlayer);
 				})
-				.toList();
+				.collect(Collectors.toSet());
 	}
 
 	public boolean hasCastlingRights(Player player) {
