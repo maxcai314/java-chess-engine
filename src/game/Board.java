@@ -239,33 +239,34 @@ public class Board {
 					}
 				}
 
-				ArrayList<PlayerMove> candidates = new ArrayList<>(findAttacksOnCoordinate(pawn, destination));
+				Set<PlayerMove> candidates = findAttacksOnCoordinate(pawn, destination);
 
-				List<PlayerMove> possible = candidates.stream()
+				Set<PlayerMove> possible = candidates.stream()
 						.filter(a -> a.from().file() == file)
-						.toList(); // todo: find stream operation to findFirst, and throw if none or more than one
+						.collect(Collectors.toUnmodifiableSet());
 
 				if (possible.isEmpty()) throw new IllegalArgumentException("Invalid pawn position: " + text);
-				else if (possible.size() == 1) return possible.getFirst();
+				else if (possible.size() == 1) return possible.iterator().next();
+				// todo: find better datatype, Set is ugly to use iterator().next(), maybe use Optional<>? idk
 				else throw new IllegalArgumentException("Ambiguous pawn capture: " + text);
 			} else {
 				// piece type specified
 				// search for the piece that can move to the destination
 				PieceType type = PieceType.fromChar(context.charAt(0));
 				Piece piece = new Piece(currentTurn, type);
-				List<PlayerMove> candidates = findAttacksOnCoordinate(piece, destination);
+				Set<PlayerMove> candidates = findAttacksOnCoordinate(piece, destination);
 				if (candidates.isEmpty()) throw new IllegalArgumentException("Invalid piece position: " + text);
-				else if (candidates.size() == 1) return candidates.getFirst();
+				else if (candidates.size() == 1) return candidates.iterator().next();
 				else throw new IllegalArgumentException("Invalid piece position: " + text);
 			}
 		} else if (context != null && context.length() == 2) { // piece with one axis specified
 			PieceType type = PieceType.fromChar(context.charAt(0));
 			Predicate<PlayerMove> filter = moveFilter(context);
 			Piece piece = new Piece(currentTurn, type);
-			List<PlayerMove> candidates = findAttacksOnCoordinate(piece, destination);
-			List<PlayerMove> possible = candidates.stream().filter(filter).toList();
+			Set<PlayerMove> candidates = findAttacksOnCoordinate(piece, destination);
+			Set<PlayerMove> possible = candidates.stream().filter(filter).collect(Collectors.toUnmodifiableSet());
 			if (possible.isEmpty()) throw new IllegalArgumentException("Invalid piece position: " + text);
-			else if (possible.size() == 1) return possible.getFirst();
+			else if (possible.size() == 1) return possible.iterator().next();
 			else throw new IllegalArgumentException("Invalid piece position: " + text);
 		} else if (context != null && context.length() == 3) { // piece with both axes specified
 			PieceType type = PieceType.fromChar(context.charAt(0));
@@ -332,21 +333,21 @@ public class Board {
 		return pieceAt(coordinate) == null;
 	}
 
-	private static final List<BoardCoordinate> DIAGONAL_STEPS = List.of(
+	private static final Set<BoardCoordinate> DIAGONAL_STEPS = Set.of(
 			new BoardCoordinate(1, 1),
 			new BoardCoordinate(1, -1),
 			new BoardCoordinate(-1, 1),
 			new BoardCoordinate(-1, -1)
 	);
 
-	private static final List<BoardCoordinate> ORTHOGONAL_STEPS = List.of(
+	private static final Set<BoardCoordinate> ORTHOGONAL_STEPS = Set.of(
 			new BoardCoordinate(1, 0),
 			new BoardCoordinate(0, 1),
 			new BoardCoordinate(-1, 0),
 			new BoardCoordinate(0, -1)
 	);
 
-	private static final List<BoardCoordinate> ALL_STEPS = List.of(
+	private static final Set<BoardCoordinate> ALL_STEPS = Set.of(
 			new BoardCoordinate(1, 1),
 			new BoardCoordinate(1, 0),
 			new BoardCoordinate(1, -1),
@@ -357,7 +358,7 @@ public class Board {
 			new BoardCoordinate(-1, -1)
 	);
 
-	private static final List<BoardCoordinate> KNIGHT_STEPS = List.of(
+	private static final Set<BoardCoordinate> KNIGHT_STEPS = Set.of(
 			new BoardCoordinate(2, 1),
 			new BoardCoordinate(2, -1),
 			new BoardCoordinate(-2, 1),
@@ -371,7 +372,7 @@ public class Board {
 	/**
 	 * Gets the hypothetical moves a piece could make if it were of the input type and at the input position
 	 */
-	private List<PlayerMove> attacksUsingPiece(Piece piece, BoardCoordinate position) {
+	private Set<PlayerMove> attacksUsingPiece(Piece piece, BoardCoordinate position) {
 		return switch (piece.type()) {
 			case PAWN ->
 					Stream.of(1, -1)
@@ -384,7 +385,7 @@ public class Board {
 							Stream.of(new RegularMove(piece, position, a))
 						)
 						.map(PlayerMove.class::cast)
-						.toList();
+						.collect(Collectors.toUnmodifiableSet());
 
 			case KNIGHT ->
 					KNIGHT_STEPS.stream()
@@ -392,7 +393,7 @@ public class Board {
 						.filter(BoardCoordinate::isValid)
 						.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
 						.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-						.toList();
+						.collect(Collectors.toUnmodifiableSet());
 
 			case KING ->
 					ALL_STEPS.stream()
@@ -400,7 +401,7 @@ public class Board {
 						.filter(BoardCoordinate::isValid)
 						.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
 						.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-						.toList();
+						.collect(Collectors.toUnmodifiableSet());
 
 			case BISHOP ->
 					DIAGONAL_STEPS.stream()
@@ -414,7 +415,7 @@ public class Board {
 						})
 						.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
 						.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-						.toList();
+						.collect(Collectors.toUnmodifiableSet());
 
 			case ROOK ->
 					ORTHOGONAL_STEPS.stream()
@@ -428,7 +429,7 @@ public class Board {
 						})
 						.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
 						.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-						.toList();
+						.collect(Collectors.toUnmodifiableSet());
 
 			case QUEEN ->
 					ALL_STEPS.stream()
@@ -442,21 +443,21 @@ public class Board {
 						})
 						.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
 						.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-						.toList();
+						.collect(Collectors.toUnmodifiableSet());
 		};
 	}
 
 	/**
 	 * Gets the hypothetical moves a piece could make from another square to attack the input position
 	 */
-	private List<PlayerMove> findAttacksOnCoordinate(Piece piece, BoardCoordinate position) {
+	private Set<PlayerMove> findAttacksOnCoordinate(Piece piece, BoardCoordinate position) {
 		Piece enemy = new Piece(piece.owner().opponent(), piece.type());
 		return attacksUsingPiece(enemy, position)
 				.stream()
 				.filter(a -> a instanceof RegularMove) // promotions can't become attacks
 				.filter(a -> piece.equals(pieceAt(a.to())))
 				.map(a -> (PlayerMove) new RegularMove(piece, a.to(), a.from())) // reverse move
-				.toList();
+				.collect(Collectors.toUnmodifiableSet());
 	}
 
 	private static final PieceType[] ATTACKING_PIECES = new PieceType[] {
@@ -514,7 +515,7 @@ public class Board {
 					BoardCoordinate singleStepFrom = position.step(currentPlayer.pawnDirection(), 0);
 					if (isEmpty(singleStepFrom)) {
 						if (singleStepFrom.rank() == currentPlayer.opponent().homeRank()) {
-							legalMoves.addAll(List.of(Promotion.allPromotions(piece, position, singleStepFrom)));
+							legalMoves.addAll(Set.of(Promotion.allPromotions(piece, position, singleStepFrom)));
 						} else {
 							legalMoves.add(new RegularMove(piece, position, singleStepFrom));
 
@@ -588,7 +589,7 @@ public class Board {
 					a.execute(copy); // execute move without creating move metadata, infinite loop
 					return !copy.isInCheck(currentPlayer);
 				})
-				.collect(Collectors.toSet());
+				.collect(Collectors.toUnmodifiableSet());
 	}
 
 	public boolean hasCastlingRights(Player player) {
