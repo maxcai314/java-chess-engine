@@ -2,9 +2,7 @@ package game.moves;
 
 import game.*;
 
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.stream.IntStream;
+import java.util.List;
 
 public record MoveRecord(
 		Board prevBoard,
@@ -52,59 +50,63 @@ public record MoveRecord(
 		return resultantState() != GameState.UNFINISHED;
 	}
 
+	public boolean isCapture() {
+		if (move instanceof EnPassant) return true;
+		else if (move instanceof Castle) return false; // unnecessary, but saves time
+		else return !prevBoard().isEmpty(move.to());
+	}
+
+	public boolean isCheck() {
+		return resultantBoard().isInCheck(player().opponent());
+	}
+
+	public boolean isMate() {
+		return switch (resultantBoard().getState()) {
+			case BLACK_WON, WHITE_WON -> true;
+			default -> false;
+		};
+	}
+
 	@Override
 	public String toString() {
-		return null;
-//		return switch (move) {
-//			case RegularMove regularMove -> {
-//				StringBuilder result = new StringBuilder();
-//
-//				if (!(regularMove.piece().type() == PieceType.PAWN)) {
-//					result.append(regularMove.piece().type().toChar());
-//					// check how many pieces are in the given file
-//					int fileCount = (int) IntStream.range(0, 8)
-//						.mapToObj(i -> board[i][regularMove.from().file()])
-//						.filter(move.piece()::equals)
-//						.count();
-//					int rankCount = (int) Arrays.stream(board[regularMove.from().rank()])
-//						.filter(move.piece()::equals)
-//						.count();
-//
-//					if (fileCount > 1)
-//						result.append(regularMove.from().toString().charAt(0)); // specify file
-//					if (rankCount > 1)
-//						result.append(regularMove.from().toString().charAt(1)); // specify rank
-//				} else if (isCapture) result.append(regularMove.from().toString().charAt(0)); // specify file
-//
-//				if (isCapture) result.append("x");
-//
-//				result.append(regularMove.to().toString());
-//
-//				if (isMate) result.append("#");
-//				else if (isCheck) result.append("+");
-//
-//				yield result.toString();
-//			}
-//
-//			case Promotion promotion -> {
-//				StringBuilder result = new StringBuilder();
-//
-//				if (isCapture()) {
-//					result.append(promotion.from().toString().charAt(0)) // specify file
-//							.append("x");
-//				}
-//
-//				result.append(promotion.to().toString())
-//						.append("=")
-//						.append(promotion.getNewPiece().type().toChar());
-//
-//				if (isMate) result.append("#");
-//				else if (isCheck) result.append("+");
-//
-//				yield result.toString();
-//			}
-//
-//			default -> move.toString(); // we trust these other types to have correct toString methods
-//		};
+		StringBuilder sb = new StringBuilder();
+		if (move instanceof Castle castle) {
+			sb.append(castle); // we're not done, what if check/mate?
+		} else { // we have to format like a normal move
+			List<PlayerMove> legalMoves = prevBoard().getLegalMoves();
+			boolean rankAmbiguous = legalMoves.stream()
+					.filter(a -> a.piece() == move().piece())
+					.map(PlayerMove::from)
+					.map(BoardCoordinate::rank)
+					.filter(((Integer) move().from().rank())::equals) // why does java need me to manually box
+					.count() > 1L;
+
+			boolean fileAmbiguous = legalMoves.stream()
+					.filter(a -> a.piece() == move().piece())
+					.map(PlayerMove::from)
+					.map(BoardCoordinate::file)
+					.filter(((Integer) move().from().file())::equals)
+					.count() > 1L;
+
+			if (move.piece().type() != PieceType.PAWN)
+				sb.append(Character.toLowerCase(move().piece().type().toChar()));
+
+			if (rankAmbiguous)
+				sb.append(move().from().toString().charAt(0));
+			if (fileAmbiguous)
+				sb.append(move().from().toString().charAt(1));
+
+			if (isCapture())
+				sb.append("x");
+
+			sb.append(move().to());
+		}
+
+		if (isMate())
+			sb.append("#");
+		else if (isCheck())
+			sb.append("+");
+
+		return sb.toString();
 	}
 }
