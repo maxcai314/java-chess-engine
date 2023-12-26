@@ -204,7 +204,7 @@ public class Board {
 		Optional<Piece> promotion = Optional.ofNullable(groups[9])
 				.map(a -> a.charAt(1))
 				.map(PieceType::fromChar)
-				.map(a -> new Piece(currentTurn, a)); // todo: use this
+				.map(a -> new Piece(currentTurn, a));
 
 		boolean isCheck = Optional.ofNullable(groups[10])
 				.map(a -> a.charAt(0))
@@ -230,6 +230,7 @@ public class Board {
 					|| record.isCapture() != isCapture
 					|| record.isMate() != isMate;
 		});
+
 		promotion.ifPresent(promotionPiece -> candidates.removeIf(candidate ->
 				!(candidate instanceof Promotion promotionMove) || !promotionMove.newPiece().equals(promotionPiece)
 		));
