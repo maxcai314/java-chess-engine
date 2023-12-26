@@ -39,7 +39,7 @@ public record RegularMove(Piece piece, BoardCoordinate from, BoardCoordinate to)
 		if (piece == null) return false;
 		if (!board.isEmpty(to) && board.pieceAt(to).owner() == getPlayer()) return false;
 		if (!piece.equals(board.pieceAt(from))) return false;
-		return true; //todo: add isInCheck to determine legality on a boardcopy
+		return true;
 	}
 
 	@Override
