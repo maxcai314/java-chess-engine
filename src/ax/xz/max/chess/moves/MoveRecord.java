@@ -74,6 +74,7 @@ public record MoveRecord(
 			Set<PlayerMove> legalMoves = prevBoard().getLegalMoves();
 			boolean rankAmbiguous = legalMoves.stream()
 					.filter(a -> a.piece() == move().piece())
+					.filter(a -> a.to() == move.to())
 					.map(PlayerMove::from)
 					.map(BoardCoordinate::rank)
 					.filter(((Integer) move().from().rank())::equals) // why does java need me to manually box
@@ -81,6 +82,7 @@ public record MoveRecord(
 
 			boolean fileAmbiguous = legalMoves.stream()
 					.filter(a -> a.piece() == move().piece())
+					.filter(a -> a.to() == move.to())
 					.map(PlayerMove::from)
 					.map(BoardCoordinate::file)
 					.filter(((Integer) move().from().file())::equals)

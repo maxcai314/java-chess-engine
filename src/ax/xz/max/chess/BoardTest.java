@@ -483,4 +483,18 @@ public class BoardTest {
 
 		assertEquals(GameState.DRAW, opening.getState());
 	}
+
+	@Test
+	public void testCastle() {
+		Board board = Board.fromFEN("4k3/8/8/2b5/8/8/8/4K2R w K - 0 1");
+
+		System.out.println(board);
+		System.out.println("Attempting illegal short castle: O-O");
+
+		for (Castle castle : Castle.values()) {
+			assertFalse(board.getLegalMoves().contains(castle));
+		}
+
+		assertThrowsExactly(IllegalArgumentException.class, () -> board.makeMove("O-O"));
+	}
 }

@@ -3,43 +3,32 @@ package ax.xz.max.chess;
 import ax.xz.max.chess.Board;
 import ax.xz.max.chess.moves.PlayerMove;
 
+import java.util.Scanner;
+
 public class Main {
 	public static void main(String[] args) {
-		String FEN = "rnbqkbnr/ppp1pppp/8/3p4/3P1B2/8/PPP1PPPP/RN1QKBNR b KQkq - 1 2";
-		Board board = Board.fromFEN(FEN);
-		System.out.println("Loading FEN: " + board.toFEN());
-		System.out.println(board);
+		Scanner scanner = new Scanner(System.in);
 
-		String[] opening = new String[] {
-				"c5",
-				"Nf3",
-				"Nc6",
-				"e3",
-				"Bf5",
-				"Nbd2",
-				"e6",
-				"c3",
-				"Bd6",
-				"Bg3",
-				"Nf6",
-				"Qb3",
-				"O-O"
-		}; // london system cope harder
-
-		for (String move : opening) {
-			System.out.println("\n");
-			System.out.printf("Possible Moves for %s: %n%s%n", board.currentTurn(), board.getLegalMoves());
-			System.out.printf("%s chose: %s%n", board.getCurrentTurn(), move);
-			PlayerMove playerMove = board.fromNotation(move);
-			assert playerMove.isPossible(board);
-			board.makeMove(playerMove);
+		Board board = new Board();
+		System.out.println("2-player chess game");
+		while (board.getState() == GameState.UNFINISHED) {
 			System.out.println(board);
-			System.out.println("Position: " + board.toFEN());
+			PlayerMove move;
+			while (true) {
+				try {
+					System.out.printf("It is currently %s's turn.%n", board.currentTurn());
+					System.out.println("Enter your move in algebraic notation:");
+					move = board.fromNotation(scanner.nextLine());
+					break;
+				} catch (IllegalArgumentException e) {
+					System.out.println("\nThat's not a legal move. Please try again:");
+				}
+			}
+
+			String moveName = board.makeMove(move).toString();
+			System.out.printf("Making move %s:%n", moveName);
 		}
-
-		System.out.println("\n\n");
-		System.out.println("Permalink to analysis: " + board.analysisLink());
-
-		System.out.println("Starting moves:\n" + new Board().getLegalMoves());
+		System.out.printf("%n%nEnd Result: %s", board.getState());
+		System.out.println("Thanks for playing!");
 	}
 }

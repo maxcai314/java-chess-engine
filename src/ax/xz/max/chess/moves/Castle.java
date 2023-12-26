@@ -2,13 +2,21 @@ package ax.xz.max.chess.moves;
 
 import ax.xz.max.chess.*;
 
+import java.util.Set;
+
 public enum Castle implements PlayerMove {
 	WHITE_LONG(
 			new Piece(Player.WHITE, PieceType.KING),
 			new BoardCoordinate(0, 4), new BoardCoordinate(0, 2),
 			new Piece(Player.WHITE, PieceType.ROOK), new BoardCoordinate(0, 0),
 			new BoardCoordinate(0, 3),
-			"O-O-O"
+			"O-O-O",
+			Set.of(
+					new BoardCoordinate(Player.WHITE.homeRank(), 1),
+					new BoardCoordinate(Player.WHITE.homeRank(), 2),
+					new BoardCoordinate(Player.WHITE.homeRank(), 3),
+					new BoardCoordinate(Player.WHITE.homeRank(), 4)
+			)
 	),
 	WHITE_SHORT(
 			new Piece(Player.WHITE, PieceType.KING),
@@ -17,7 +25,12 @@ public enum Castle implements PlayerMove {
 			new Piece(Player.WHITE, PieceType.ROOK),
 			new BoardCoordinate(0, 7),
 			new BoardCoordinate(0, 5),
-			"O-O"
+			"O-O",
+			Set.of(
+					new BoardCoordinate(Player.WHITE.homeRank(), 4),
+					new BoardCoordinate(Player.WHITE.homeRank(), 5),
+					new BoardCoordinate(Player.WHITE.homeRank(), 6)
+			)
 	),
 	BLACK_LONG(
 			new Piece(Player.BLACK, PieceType.KING),
@@ -26,7 +39,12 @@ public enum Castle implements PlayerMove {
 			new Piece(Player.BLACK, PieceType.ROOK),
 			new BoardCoordinate(7, 0),
 			new BoardCoordinate(7, 3),
-			"O-O-O"
+			"O-O-O",
+			Set.of(
+					new BoardCoordinate(Player.BLACK.homeRank(), 1),
+					new BoardCoordinate(Player.BLACK.homeRank(), 2),
+					new BoardCoordinate(Player.BLACK.homeRank(), 3)
+			)
 	),
 	BLACK_SHORT(
 			new Piece(Player.BLACK, PieceType.KING),
@@ -35,7 +53,11 @@ public enum Castle implements PlayerMove {
 			new Piece(Player.BLACK, PieceType.ROOK),
 			new BoardCoordinate(7, 7),
 			new BoardCoordinate(7, 5),
-			"O-O"
+			"O-O",
+			Set.of(
+					new BoardCoordinate(Player.BLACK.homeRank(), 5),
+					new BoardCoordinate(Player.BLACK.homeRank(), 6)
+			)
 	);
 
 	private final Piece king;
@@ -47,7 +69,9 @@ public enum Castle implements PlayerMove {
 
 	private final String notation;
 
-	Castle(Piece king, BoardCoordinate from, BoardCoordinate to, Piece rook, BoardCoordinate rookFrom, BoardCoordinate rookTo, String notation) {
+	private final Set<BoardCoordinate> clearanceSquares;
+
+	Castle(Piece king, BoardCoordinate from, BoardCoordinate to, Piece rook, BoardCoordinate rookFrom, BoardCoordinate rookTo, String notation, Set<BoardCoordinate> clearanceSquares) {
 		this.king = king;
 		this.from = from;
 		this.to = to;
@@ -55,6 +79,7 @@ public enum Castle implements PlayerMove {
 		this.rookFrom = rookFrom;
 		this.rookTo = rookTo;
 		this.notation = notation;
+		this.clearanceSquares = clearanceSquares;
 	}
 
 	public static Castle longCastle(Player player) {
@@ -94,14 +119,18 @@ public enum Castle implements PlayerMove {
 		if (!king.equals(board.pieceAt(from))) return false;
 		if (!rook.equals(board.pieceAt(rookFrom))) return false;
 		if (!board.isEmpty(to)) return false;
-		for (int i = Math.min(from.file(), to.file()) + 1; i < Math.max(from.file(), to.file()); i++) {
-			if (!board.isEmpty(new BoardCoordinate(from.rank(), i))) return false;
+		for (BoardCoordinate square : getClearanceSquares()) {
+			if (!board.isEmpty(square)) return false;
 		}
 
 		return switch (this) {
 			case BLACK_SHORT, WHITE_SHORT -> board.canShortCastle(getPlayer());
 			case BLACK_LONG, WHITE_LONG -> board.canLongCastle(getPlayer());
 		};
+	}
+
+	public Set<BoardCoordinate> getClearanceSquares() {
+		return clearanceSquares;
 	}
 
 	@Override

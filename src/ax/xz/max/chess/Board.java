@@ -188,8 +188,10 @@ public class Board {
 		String[] groups = parseAlgebraicNotation(text);
 
 		if (groups[2] != null) // castling
-			if (groups[3] != null) return Castle.longCastle(currentTurn);
-			else return Castle.shortCastle(currentTurn);
+			return switch (groups[3] == null ? Castle.shortCastle(currentTurn) : Castle.longCastle(currentTurn)) {
+				case Castle castle when getLegalMoves().contains(castle) -> castle;
+				default -> throw new IllegalArgumentException("Illegal Castle: " + text);
+			};
 
 		Piece piece = switch (groups[4]) {
 			case String s -> new Piece(currentTurn, PieceType.fromChar(s.charAt(0)));
@@ -197,7 +199,7 @@ public class Board {
 		};
 
 		Optional<Integer> fileClue = Optional.ofNullable(groups[5]).map(a -> a.charAt(0) - 'a');
-		Optional<Integer> rankClue = Optional.ofNullable(groups[6]).map(a -> a.charAt(0) - '0');
+		Optional<Integer> rankClue = Optional.ofNullable(groups[6]).map(a -> a.charAt(0) - '1');
 
 		boolean isCapture = groups[7] != null;
 		BoardCoordinate destination = BoardCoordinate.fromString(groups[8]);
@@ -219,7 +221,6 @@ public class Board {
 		Set<PlayerMove> candidates = getLegalMoves(currentTurn);
 
 		candidates.removeIf(candidate -> !candidate.piece().equals(piece));
-		System.out.println(candidates.size());
 
 		candidates.removeIf(candidate -> !candidate.to().equals(destination));
 		rankClue.ifPresent(rank -> candidates.removeIf(candidate -> candidate.from().rank() != rank));
@@ -478,14 +479,10 @@ public class Board {
 		if (!isInCheck(currentPlayer) && canShortCastle(currentPlayer)) {
 			ShortCastleSearch: {
 				// check if the squares are defended
-				for (int i = 5; i < 7; i++) {
-					BoardCoordinate coord = new BoardCoordinate(currentPlayer.homeRank(), i);
-					if (!isEmpty(coord)) {
+				Castle castle = Castle.shortCastle(currentPlayer);
+				for (BoardCoordinate square : castle.getClearanceSquares()) {
+					if (isDefendedBy(currentPlayer.opponent(), square))
 						break ShortCastleSearch;
-					}
-					if (isDefendedBy(currentPlayer.opponent(), coord)) {
-						break ShortCastleSearch;
-					}
 				}
 				legalMoves.add(Castle.shortCastle(currentPlayer));
 			}
@@ -494,14 +491,10 @@ public class Board {
 		if (!isInCheck(currentPlayer) && canLongCastle(currentPlayer)) {
 			LongCastleSearch: {
 				// check if the squares are defended
-				for (int i = 1; i < 4; i++) {
-					BoardCoordinate coord = new BoardCoordinate(currentPlayer.homeRank(), i);
-					if (!isEmpty(coord)) {
+				Castle castle = Castle.longCastle(currentPlayer);
+				for (BoardCoordinate square : castle.getClearanceSquares()) {
+					if (isDefendedBy(currentPlayer.opponent(), square))
 						break LongCastleSearch;
-					}
-					if (isDefendedBy(currentPlayer.opponent(), coord)) {
-						break LongCastleSearch;
-					}
 				}
 				legalMoves.add(Castle.longCastle(currentPlayer));
 			}
@@ -532,7 +525,7 @@ public class Board {
 				.filter(a -> a.isPossible(this))
 				.filter(a -> {
 					Board copy = copy();
-					a.execute(copy); // execute move without creating move metadata, infinite loop
+					copy.makeMove(a); // execute move without creating move metadata, infinite loop
 					return !copy.isInCheck(currentPlayer);
 				})
 				.collect(Collectors.toSet());
