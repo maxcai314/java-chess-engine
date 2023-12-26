@@ -1,4 +1,4 @@
-package game;
+package ax.xz.max.chess;
 
 public enum GameState {
 	UNFINISHED, WHITE_WON, BLACK_WON, DRAW;

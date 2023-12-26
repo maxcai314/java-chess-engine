@@ -1,4 +1,4 @@
-package game;
+package ax.xz.max.chess;
 
 public enum Player {
 	WHITE(0, 1, 1), BLACK(7, 6, -1);

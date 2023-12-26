@@ -1,5 +1,7 @@
-import game.Board;
-import game.moves.PlayerMove;
+package ax.xz.max.chess;
+
+import ax.xz.max.chess.Board;
+import ax.xz.max.chess.moves.PlayerMove;
 
 public class Main {
 	public static void main(String[] args) {

@@ -1,6 +1,6 @@
-package game;
+package ax.xz.max.chess;
 
-import game.moves.*;
+import ax.xz.max.chess.moves.*;
 
 import java.util.*;
 import java.util.function.Function;
@@ -313,7 +313,8 @@ public class Board {
 	);
 
 	/**
-	 * Gets the hypothetical moves a piece could make if it were of the input type and at the input position
+	 * Gets the hypothetical moves a piece could make if it were of the input type and at the input position,
+	 * regardless of legality
 	 */
 	private Set<PlayerMove> attacksUsingPiece(Piece piece, BoardCoordinate position) {
 		return switch (piece.type()) {
@@ -391,7 +392,8 @@ public class Board {
 	}
 
 	/**
-	 * Gets the hypothetical moves a piece could make from another square to attack the input position
+	 * Gets the hypothetical moves a piece could make from another square to attack the input position,
+	 * regardless of legality
 	 */
 	private Set<PlayerMove> findAttacksOnCoordinate(Piece piece, BoardCoordinate position) {
 		Piece enemy = new Piece(piece.owner().opponent(), piece.type());
@@ -413,9 +415,10 @@ public class Board {
 	};
 
 	/**
-	 * Determines whether a given square is defended by the opponent
+	 * Determines whether a given square is defended by the opponent,
+	 * regardless of legality
 	 */
-	public boolean isDefendedBy(Player opponent, BoardCoordinate position) {
+	private boolean isDefendedBy(Player opponent, BoardCoordinate position) {
 		// strategy: replace the position square with a piece of any type, and see if it attacks an opponent piece of the same type
 		Player player = opponent.opponent();
 		return Stream.of(ATTACKING_PIECES)

@@ -1,6 +1,6 @@
-package game.moves;
+package ax.xz.max.chess.moves;
 
-import game.*;
+import ax.xz.max.chess.*;
 
 public record RegularMove(Piece piece, BoardCoordinate from, BoardCoordinate to) implements PlayerMove {
 

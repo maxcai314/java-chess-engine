@@ -1,4 +1,4 @@
-package game;
+package ax.xz.max.chess;
 
 public record Piece(
 		Player owner,

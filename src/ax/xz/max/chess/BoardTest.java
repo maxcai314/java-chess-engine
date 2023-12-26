@@ -1,6 +1,6 @@
-package game;
+package ax.xz.max.chess;
 
-import game.moves.*;
+import ax.xz.max.chess.moves.*;
 import org.junit.Test;
 
 import java.util.HashMap;

@@ -1,4 +1,4 @@
-package game;
+package ax.xz.max.chess;
 
 public enum PieceType {
 	PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING;

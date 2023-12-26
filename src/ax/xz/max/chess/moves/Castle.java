@@ -1,6 +1,6 @@
-package game.moves;
+package ax.xz.max.chess.moves;
 
-import game.*;
+import ax.xz.max.chess.*;
 
 public enum Castle implements PlayerMove {
 	WHITE_LONG(
