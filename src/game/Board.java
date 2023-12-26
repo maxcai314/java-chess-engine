@@ -4,7 +4,6 @@ import game.moves.*;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -187,136 +186,79 @@ public class Board {
 	 */
 	public PlayerMove fromNotation(String text) {
 		String[] groups = parseAlgebraicNotation(text);
-		if (groups[0] == null) throw new IllegalArgumentException("Invalid algebraic notation: " + text);
-		if (groups[1] != null) { // castling
-			if (groups[2] != null) return Castle.longCastle(currentTurn);
+
+		if (groups[2] != null) // castling
+			if (groups[3] != null) return Castle.longCastle(currentTurn);
 			else return Castle.shortCastle(currentTurn);
-		}
-		if (groups[3] == null) throw new IllegalArgumentException("Invalid algebraic notation: " + text);
 
-		String context;
-		if (groups[5] != null) { // capture
-			// remove the 'x' at the end
-			context = groups[5].substring(0, groups[5].length() - 1);
-		} else { // if it's null, it's null anyways
-			context = groups[6];
-		}
+		Piece piece = switch (groups[4]) {
+			case String s -> new Piece(currentTurn, PieceType.fromChar(s.charAt(0)));
+			case null -> new Piece(currentTurn, PieceType.PAWN);
+		};
 
-		if (groups[7] == null) throw new IllegalArgumentException("Invalid algebraic notation: " + text);
-		BoardCoordinate destination = BoardCoordinate.fromString(groups[7]);
+		Optional<Integer> fileClue = Optional.ofNullable(groups[5]).map(a -> a.charAt(0) - 'a');
+		Optional<Integer> rankClue = Optional.ofNullable(groups[6]).map(a -> a.charAt(0) - '0');
 
-		String promotion = groups[8];
-		if (promotion != null) {
-			PieceType type = PieceType.fromChar(promotion.charAt(1));
-			Piece piece = new Piece(currentTurn, type);
-			if (context != null) {
-				return new Promotion(piece, new Piece(currentTurn, PieceType.PAWN), new BoardCoordinate(currentTurn.opponent().pawnRank(), context.charAt(0) - 'a'), destination);
-			} else {
-				return new Promotion(piece, new Piece(currentTurn, PieceType.PAWN), new BoardCoordinate(currentTurn.opponent().pawnRank(), destination.file()), destination);
-			}
-		}
+		boolean isCapture = groups[7] != null;
+		BoardCoordinate destination = BoardCoordinate.fromString(groups[8]);
+		Optional<Piece> promotion = Optional.ofNullable(groups[9])
+				.map(a -> a.charAt(1))
+				.map(PieceType::fromChar)
+				.map(a -> new Piece(currentTurn, a)); // todo: use this
 
-		if (context != null && context.length() == 1) {
-			if ("abcdefgh".contains(context)) { // pawn captures
-				int file = context.charAt(0) - 'a';
-				Piece pawn = new Piece(currentTurn, PieceType.PAWN);
+		boolean isCheck = Optional.ofNullable(groups[10])
+				.map(a -> a.charAt(0))
+				.map(((Character) '+')::equals)
+				.orElse(false);
 
-				// en passant if it exists
-				if (!moves.isEmpty() && moves.getLast().move() instanceof RegularMove lastMove) {
-					if (lastMove.piece().type() == PieceType.PAWN && lastMove.from().file() == destination.file()) {
-						BoardCoordinate pawnFrom = new BoardCoordinate(currentTurn.opponent().pawnRank(), destination.file());
-						BoardCoordinate capturedPawn = pawnFrom.step(currentTurn.opponent().pawnDirection(), 0);
-						BoardCoordinate pawnTo = pawnFrom.step(2 * currentTurn.opponent().pawnDirection(), 0);
-						if (lastMove.from().equals(pawnFrom) &&
-							lastMove.to().equals(pawnTo) &&
-							isEmpty(capturedPawn) && isEmpty(pawnFrom) &&
-							!isEmpty(pawnTo) &&
-							pieceAt(pawnTo).equals(new Piece(currentTurn.opponent(), PieceType.PAWN)) &&
-							destination.equals(capturedPawn)
-						) {
-							return EnPassant.enPassant(currentTurn, new BoardCoordinate(pawnTo.rank(), file), destination);
-						}
-					}
-				}
+		boolean isMate = Optional.ofNullable(groups[10])
+				.map(a -> a.charAt(0))
+				.map(((Character) '#')::equals)
+				.orElse(false);
 
-				Set<PlayerMove> candidates = findAttacksOnCoordinate(pawn, destination);
+		Set<PlayerMove> candidates = getLegalMoves(currentTurn);
 
-				Set<PlayerMove> possible = candidates.stream()
-						.filter(a -> a.from().file() == file)
-						.collect(Collectors.toUnmodifiableSet());
+		candidates.removeIf(candidate -> !candidate.piece().equals(piece));
+		System.out.println(candidates.size());
 
-				if (possible.isEmpty()) throw new IllegalArgumentException("Invalid pawn position: " + text);
-				else if (possible.size() == 1) return possible.iterator().next();
-				// todo: find better datatype, Set is ugly to use iterator().next(), maybe use Optional<>? idk
-				else throw new IllegalArgumentException("Ambiguous pawn capture: " + text);
-			} else {
-				// piece type specified
-				// search for the piece that can move to the destination
-				PieceType type = PieceType.fromChar(context.charAt(0));
-				Piece piece = new Piece(currentTurn, type);
-				Set<PlayerMove> candidates = findAttacksOnCoordinate(piece, destination);
-				if (candidates.isEmpty()) throw new IllegalArgumentException("Invalid piece position: " + text);
-				else if (candidates.size() == 1) return candidates.iterator().next();
-				else throw new IllegalArgumentException("Invalid piece position: " + text);
-			}
-		} else if (context != null && context.length() == 2) { // piece with one axis specified
-			PieceType type = PieceType.fromChar(context.charAt(0));
-			Predicate<PlayerMove> filter = moveFilter(context);
-			Piece piece = new Piece(currentTurn, type);
-			Set<PlayerMove> candidates = findAttacksOnCoordinate(piece, destination);
-			Set<PlayerMove> possible = candidates.stream().filter(filter).collect(Collectors.toUnmodifiableSet());
-			if (possible.isEmpty()) throw new IllegalArgumentException("Invalid piece position: " + text);
-			else if (possible.size() == 1) return possible.iterator().next();
-			else throw new IllegalArgumentException("Invalid piece position: " + text);
-		} else if (context != null && context.length() == 3) { // piece with both axes specified
-			PieceType type = PieceType.fromChar(context.charAt(0));
-			Piece piece = new Piece(currentTurn, type);
-			BoardCoordinate location = BoardCoordinate.fromString(context.substring(1));
-			if (piece.equals(pieceAt(location))) return new RegularMove(piece, location, destination);
-			else throw new IllegalArgumentException("Invalid piece position: " + text);
-		} else { // don't use context, pawn pushes only
-			Piece pawn = new Piece(currentTurn, PieceType.PAWN);
-			BoardCoordinate singleStepFrom = destination.step(-1 * currentTurn.pawnDirection(), 0);
-			BoardCoordinate doubleStepFrom = destination.step(-2 * currentTurn.pawnDirection(), 0);
-			if (pawn.equals(pieceAt(singleStepFrom)))
-				return new RegularMove(pawn, singleStepFrom, destination);
-			else if (currentTurn.pawnRank() == doubleStepFrom.rank() && pieceAt(singleStepFrom) == null && pawn.equals(pieceAt(doubleStepFrom)))
-				return new RegularMove(pawn, new BoardCoordinate(currentTurn.pawnRank(), destination.file()), destination);
-			else throw new IllegalArgumentException("Invalid pawn position: " + text);
-		}
+		candidates.removeIf(candidate -> !candidate.to().equals(destination));
+		rankClue.ifPresent(rank -> candidates.removeIf(candidate -> candidate.from().rank() != rank));
+		fileClue.ifPresent(file -> candidates.removeIf(candidate -> candidate.from().file() != file));
+		candidates.removeIf(candidate -> {
+			MoveRecord record = copy().makeMove(candidate);
+			return record.isCheck() != (isCheck || isMate)
+					|| record.isCapture() != isCapture
+					|| record.isMate() != isMate;
+		});
+		promotion.ifPresent(promotionPiece -> candidates.removeIf(candidate ->
+				!(candidate instanceof Promotion promotionMove) || !promotionMove.newPiece().equals(promotionPiece)
+		));
+
+		if (candidates.isEmpty()) throw new IllegalArgumentException("No moves found for " + text);
+		if (candidates.size() > 1) throw new IllegalArgumentException("Move not specific enough: " + candidates.size() + " candidates found for move " + text);
+
+		return candidates.iterator().next();
 	}
 
-	private static Predicate<PlayerMove> moveFilter(String context) {
-		Predicate<PlayerMove> filter;
-		if ("abcdefgh".contains(context.substring(1))) { // rank specified
-			int file = context.charAt(1) - 'a';
-			filter = a -> a.from().file() == file;
-		} else if ("12345678".contains(context.substring(1))) { // file specified
-			int rank = context.charAt(1) - '1';
-			filter = a -> a.from().rank() == rank;
-		} else {
-			throw new IllegalArgumentException("Invalid context string: " + context);
-		}
-		return filter;
-	}
-
-	private static final String ALGEBRAIC_REGEX_PATTERN = "([Oo0]-[Oo0](-[Oo0])?)|((([KQRBN]?[a-h]?[1-8]?x)|([KQRBN][a-h]?[1-8]?))?([a-h][1-8])(=[QRBN])?[+#]?)";
+	private static final String ALGEBRAIC_REGEX_PATTERN = "(([Oo0]-[Oo0](-[Oo0])?)|([KQRBN])?([a-h])??([1-8])??(x)?([a-h][1-8])(=[QRBN])?)([+#])?";
 
 	/**
 	 * Parses algebraic notation into an array of strings
 	 * @param text The algebraic notation of the move as a string (e.g. "cxd8=N+")
 	 * @return An array of strings formatted as follows:
-	 * <p> groups[0] = entire match
-	 * <p> groups[1] = castling match
-	 * <p> groups[2] = long castling
-	 * <p> groups[3] = normal move match
-	 * <p> groups[4] = capture/context match
-	 * <p> groups[5] = capture
-	 * <p> groups[6] = context
-	 * <p> groups[7] = destination
-	 * <p> groups[8] = promotion
+	 * <p> groups[0] = original text
+	 * <p> groups[1] = raw move
+	 * <p> groups[2] = castling match
+	 * <p> groups[3] = long castle
+	 * <p> groups[4] = piece
+	 * <p> groups[5] = file context
+	 * <p> groups[6] = rank context
+	 * <p> groups[7] = capture
+	 * <p> groups[8] = destination
+	 * <p> groups[9] = promotion
+	 * <p> groups[10] = threat
 	 */
-	private String[] parseAlgebraicNotation(String text) {
+	private static String[] parseAlgebraicNotation(String text) {
 		Pattern pattern = Pattern.compile(ALGEBRAIC_REGEX_PATTERN);
 		Matcher matcher = pattern.matcher(text);
 		if (!matcher.matches()) throw new IllegalArgumentException("Invalid algebraic notation: " + text);
@@ -385,7 +327,7 @@ public class Board {
 							Stream.of(new RegularMove(piece, position, a))
 						)
 						.map(PlayerMove.class::cast)
-						.collect(Collectors.toUnmodifiableSet());
+						.collect(Collectors.toSet());
 
 			case KNIGHT ->
 					KNIGHT_STEPS.stream()
@@ -393,7 +335,7 @@ public class Board {
 						.filter(BoardCoordinate::isValid)
 						.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
 						.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-						.collect(Collectors.toUnmodifiableSet());
+						.collect(Collectors.toSet());
 
 			case KING ->
 					ALL_STEPS.stream()
@@ -401,7 +343,7 @@ public class Board {
 						.filter(BoardCoordinate::isValid)
 						.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
 						.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-						.collect(Collectors.toUnmodifiableSet());
+						.collect(Collectors.toSet());
 
 			case BISHOP ->
 					DIAGONAL_STEPS.stream()
@@ -415,7 +357,7 @@ public class Board {
 						})
 						.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
 						.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-						.collect(Collectors.toUnmodifiableSet());
+						.collect(Collectors.toSet());
 
 			case ROOK ->
 					ORTHOGONAL_STEPS.stream()
@@ -429,7 +371,7 @@ public class Board {
 						})
 						.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
 						.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-						.collect(Collectors.toUnmodifiableSet());
+						.collect(Collectors.toSet());
 
 			case QUEEN ->
 					ALL_STEPS.stream()
@@ -443,7 +385,7 @@ public class Board {
 						})
 						.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
 						.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-						.collect(Collectors.toUnmodifiableSet());
+						.collect(Collectors.toSet());
 		};
 	}
 
@@ -457,7 +399,7 @@ public class Board {
 				.filter(a -> a instanceof RegularMove) // promotions can't become attacks
 				.filter(a -> piece.equals(pieceAt(a.to())))
 				.map(a -> (PlayerMove) new RegularMove(piece, a.to(), a.from())) // reverse move
-				.collect(Collectors.toUnmodifiableSet());
+				.collect(Collectors.toSet());
 	}
 
 	private static final PieceType[] ATTACKING_PIECES = new PieceType[] {
@@ -589,7 +531,7 @@ public class Board {
 					a.execute(copy); // execute move without creating move metadata, infinite loop
 					return !copy.isInCheck(currentPlayer);
 				})
-				.collect(Collectors.toUnmodifiableSet());
+				.collect(Collectors.toSet());
 	}
 
 	public boolean hasCastlingRights(Player player) {
@@ -627,15 +569,16 @@ public class Board {
 		}
 	}
 
-	public void makeMove(PlayerMove move) {
+	public MoveRecord makeMove(PlayerMove move) {
 		Board prevBoard = copy();
 		move.execute(this);
 		MoveRecord record = new MoveRecord(prevBoard, move);
 		moves.add(record);
+		return record;
 	}
 
-	public void makeMove(String notation) {
-		makeMove(fromNotation(notation));
+	public MoveRecord makeMove(String notation) {
+		return makeMove(fromNotation(notation));
 	}
 
 	public int maxRepeatedPositions() {

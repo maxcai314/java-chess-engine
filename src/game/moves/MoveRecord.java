@@ -61,10 +61,8 @@ public record MoveRecord(
 	}
 
 	public boolean isMate() {
-		return switch (resultantBoard().getState()) {
-			case BLACK_WON, WHITE_WON -> true;
-			default -> false;
-		};
+		Board result = resultantBoard();
+		return result.isInCheck(player().opponent()) && result.getLegalMoves().isEmpty();
 	}
 
 	@Override
