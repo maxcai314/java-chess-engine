@@ -511,10 +511,12 @@ public class Board {
 				// check if the squares are defended
 				Castle castle = Castle.shortCastle(currentPlayer);
 				for (BoardCoordinate square : castle.getClearanceSquares()) {
+					if (!isEmpty(square))
+						break ShortCastleSearch;
 					if (isDefendedBy(currentPlayer.opponent(), square))
 						break ShortCastleSearch;
 				}
-				legalMoves.add(Castle.shortCastle(currentPlayer));
+				legalMoves.add(castle);
 			}
 		}
 
@@ -523,10 +525,12 @@ public class Board {
 				// check if the squares are defended
 				Castle castle = Castle.longCastle(currentPlayer);
 				for (BoardCoordinate square : castle.getClearanceSquares()) {
+					if (!isEmpty(square))
+						break LongCastleSearch;
 					if (isDefendedBy(currentPlayer.opponent(), square))
 						break LongCastleSearch;
 				}
-				legalMoves.add(Castle.longCastle(currentPlayer));
+				legalMoves.add(castle);
 			}
 		}
 
@@ -552,7 +556,6 @@ public class Board {
 		}
 
 		return legalMoves.stream()
-				.filter(a -> a.isPossible(this))
 				.filter(a -> {
 					Board copy = copy();
 					copy.makeMove(a); // execute move without creating move metadata, infinite loop

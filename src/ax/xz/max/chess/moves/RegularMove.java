@@ -33,16 +33,6 @@ public record RegularMove(Piece piece, BoardCoordinate from, BoardCoordinate to)
 	}
 
 	@Override
-	public boolean isPossible(Board board) {
-		if (!from.isValid() || !to.isValid()) return false;
-
-		if (piece == null) return false;
-		if (!board.isEmpty(to) && board.pieceAt(to).owner() == getPlayer()) return false;
-		if (!piece.equals(board.pieceAt(from))) return false;
-		return true;
-	}
-
-	@Override
 	public Player getPlayer() {
 		return piece.owner();
 	}

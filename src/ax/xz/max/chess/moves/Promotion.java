@@ -30,24 +30,6 @@ public record Promotion(
 	}
 
 	@Override
-	public boolean isPossible(Board board) {
-		if (!from.isValid() || !to.isValid()) return false;
-		if (from.rank() != getPlayer().opponent().pawnRank()) return false;
-		if (to.rank() != getPlayer().opponent().homeRank()) return false;
-		if (!board.isEmpty(to) && board.pieceAt(to).owner() == getPlayer()) return false;
-
-		if (oldPiece == null) return false;
-		if (newPiece == null) return false;
-		if (oldPiece.type() != PieceType.PAWN) return false;
-		if (!oldPiece.equals(board.pieceAt(from))) return false;
-		if (oldPiece.owner() != newPiece.owner()) return false;
-		if (newPiece.type() == PieceType.PAWN) return false;
-		if (newPiece.type() == PieceType.KING) return false;
-
-		return true;
-	}
-
-	@Override
 	public Piece piece() {
 		return oldPiece;
 	}

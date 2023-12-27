@@ -27,19 +27,6 @@ public record EnPassant(
 	}
 
 	@Override
-	public boolean isPossible(Board board) {
-		if (!from.isValid() || !to.isValid()) return false;
-		else if (!board.isEmpty(to)) return false;
-
-		if (pawn == null || pawn.type() != PieceType.PAWN) return false;
-		if (capturedPawn == null || capturedPawn.type() != PieceType.PAWN) return false;
-		if (!pawn.equals(board.pieceAt(from))) return false;
-		if (!capturedPawn.equals(board.pieceAt(capturedPawnCoordinates))) return false;
-		if (getPlayer().opponent() != capturedPawn.owner()) return false;
-		return true;
-	}
-
-	@Override
 	public Piece piece() {
 		return pawn;
 	}

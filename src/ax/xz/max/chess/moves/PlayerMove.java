@@ -11,12 +11,6 @@ public sealed interface PlayerMove extends BoardCommand permits RegularMove, Cas
 	void execute(Board board);
 
 	/**
-	 * Low-level basic check to see if the required squares are empty/occupied.
-	 * Does not check for legality in terms of tempo or checks.
-	 */
-	boolean isPossible(Board board);
-
-	/**
 	 * @return the primary piece which makes the move
 	 */
 	Piece piece();

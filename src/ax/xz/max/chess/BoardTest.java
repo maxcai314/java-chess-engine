@@ -75,7 +75,7 @@ public class BoardTest {
 		board.makeMove("d5"); // en passant is possible on next move
 
 		PlayerMove enPassant = board.fromNotation("exd6");
-		assertTrue(enPassant.isPossible(board));
+		assertTrue(board.getLegalMoves().contains(enPassant));
 		System.out.println(board.toFEN());
 		System.out.println("Lichess link: " + board.analysisLink());
 
@@ -94,7 +94,7 @@ public class BoardTest {
 		assertTrue(board.toFEN().startsWith("4k3/8/4K3/6Pp/8/8/8/8 w - h6")); // important: FEN specifies possible en passant on h6
 
 		PlayerMove enPassant = board.fromNotation("gxh6");
-		assertTrue(enPassant.isPossible(board));
+		assertTrue(board.getLegalMoves().contains(enPassant));
 
 		board.makeMove(enPassant);
 
@@ -200,23 +200,36 @@ public class BoardTest {
 		Board board = Board.fromFEN("r3k3/8/8/8/8/8/8/R3K2R w KQq - 0 1");
 		System.out.println(board);
 
-		board.makeMove("Rb1");
+		assertTrue(board.getLegalMoves(Player.WHITE).contains(Castle.shortCastle(Player.WHITE)));
+		assertTrue(board.getLegalMoves(Player.WHITE).contains(Castle.longCastle(Player.WHITE)));
+
+		board.makeMove("Rb1"); // revoke long castling privileges
 		assertEquals(board.toFEN(), "r3k3/8/8/8/8/8/8/1R2K2R b Kq - 1 1");
 
-		Castle shortCastle = Castle.shortCastle(Player.WHITE);
-		Castle longCastle = Castle.longCastle(Player.WHITE);
+		System.out.println(board);
+		System.out.println("Legal Moves: " + board.getLegalMoves());
 
-		assertTrue(shortCastle.isPossible(board));
-		assertFalse(longCastle.isPossible(board));
+		assertTrue(board.getLegalMoves(Player.WHITE).contains(Castle.shortCastle(Player.WHITE)));
+		assertFalse(board.getLegalMoves(Player.WHITE).contains(Castle.longCastle(Player.WHITE)));
+
+		assertFalse(board.getLegalMoves(Player.BLACK).contains(Castle.shortCastle(Player.BLACK)));
+		assertTrue(board.getLegalMoves(Player.BLACK).contains(Castle.longCastle(Player.BLACK)));
 
 		board.makeMove("O-O-O");
 		assertEquals(board.toFEN(), "2kr4/8/8/8/8/8/8/1R2K2R w K - 2 2");
+
+		assertFalse(board.getLegalMoves(Player.BLACK).contains(Castle.shortCastle(Player.BLACK)));
+		assertFalse(board.getLegalMoves(Player.BLACK).contains(Castle.longCastle(Player.BLACK)));
+
 		board.makeMove("O-O");
 		assertEquals(board.toFEN(), "2kr4/8/8/8/8/8/8/1R3RK1 b - - 3 2");
+
+		assertFalse(board.getLegalMoves(Player.WHITE).contains(Castle.shortCastle(Player.WHITE)));
+		assertFalse(board.getLegalMoves(Player.WHITE).contains(Castle.longCastle(Player.WHITE)));
 	}
 
 	@Test
-	public void testIsPossible() {
+	public void testIsLegal() {
 		String FEN = "rnbqkbnr/ppp1pppp/8/3p4/3P1B2/8/PPP1PPPP/RN1QKBNR b KQkq - 1 2";
 		Board board = Board.fromFEN(FEN);
 		System.out.println("Loading FEN: " + board.toFEN());
@@ -243,7 +256,7 @@ public class BoardTest {
 			System.out.println(board.getCurrentTurn() + ": " + move);
 			PlayerMove playerMove = board.fromNotation(move);
 
-			assertTrue(playerMove.isPossible(board));
+			assertTrue(board.getLegalMoves().contains(playerMove));
 
 			PlayerMove[] illegalMoves = new PlayerMove[] {
 				new Promotion(new Piece(playerMove.getPlayer(), PieceType.KING), playerMove.piece(), playerMove.from(), playerMove.to()),
@@ -255,7 +268,7 @@ public class BoardTest {
 
 			for (PlayerMove illegalMove : illegalMoves) {
 				System.out.println("Testing illegal move: " + illegalMove);
-				assertFalse(illegalMove.isPossible(board));
+				assertFalse(board.getLegalMoves().contains(illegalMove));
 			}
 
 			board.makeMove(playerMove);
@@ -268,6 +281,7 @@ public class BoardTest {
 	public void testLegalMoves() {
 		Board board = new Board();
 		System.out.println(board);
+		System.out.println(board.getLegalMoves());
 
 		assertEquals(20, board.getLegalMoves().size());
 		board.makeMove("e4");
@@ -302,7 +316,7 @@ public class BoardTest {
 		assertEquals(28, board.getLegalMoves().size()); // castle is blocked
 
 		for (PlayerMove move : board.getLegalMoves()) {
-			assertTrue(move.isPossible(board));
+			assertTrue(board.getLegalMoves().contains(move));
 		}
 
 		System.out.println(board);
@@ -444,7 +458,7 @@ public class BoardTest {
 			Board simulation = endgame.copy();
 			System.out.println("Testing move: " + move);
 			PlayerMove playerMove = simulation.fromNotation(move);
-			assertTrue(playerMove.isPossible(simulation));
+			assertTrue(simulation.getLegalMoves().contains(playerMove));
 			simulation.makeMove(playerMove);
 			assertEquals(state, simulation.getState());
 			System.out.println(simulation);

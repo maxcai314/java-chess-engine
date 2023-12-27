@@ -107,24 +107,6 @@ public enum Castle implements PlayerMove {
 		board.incrementHalfMoves(); // it's impossible for castles to be captures or pawn pushes
 	}
 
-	/** Doesn't check if the squares are defended, only if the pieces exist */
-	@Override
-	public boolean isPossible(Board board) {
-		if (!board.hasCastlingRights(getPlayer())) return false;
-
-		if (!king.equals(board.pieceAt(from))) return false;
-		if (!rook.equals(board.pieceAt(rookFrom))) return false;
-		if (!board.isEmpty(to)) return false;
-		for (BoardCoordinate square : getClearanceSquares()) {
-			if (!board.isEmpty(square)) return false;
-		}
-
-		return switch (this) {
-			case BLACK_SHORT, WHITE_SHORT -> board.canShortCastle(getPlayer());
-			case BLACK_LONG, WHITE_LONG -> board.canLongCastle(getPlayer());
-		};
-	}
-
 	public Set<BoardCoordinate> getClearanceSquares() {
 		return clearanceSquares;
 	}
