@@ -12,10 +12,8 @@ public enum Castle implements PlayerMove {
 			new BoardCoordinate(0, 3),
 			"O-O-O",
 			Set.of(
-					new BoardCoordinate(Player.WHITE.homeRank(), 1),
 					new BoardCoordinate(Player.WHITE.homeRank(), 2),
-					new BoardCoordinate(Player.WHITE.homeRank(), 3),
-					new BoardCoordinate(Player.WHITE.homeRank(), 4)
+					new BoardCoordinate(Player.WHITE.homeRank(), 3)
 			)
 	),
 	WHITE_SHORT(
@@ -27,7 +25,6 @@ public enum Castle implements PlayerMove {
 			new BoardCoordinate(0, 5),
 			"O-O",
 			Set.of(
-					new BoardCoordinate(Player.WHITE.homeRank(), 4),
 					new BoardCoordinate(Player.WHITE.homeRank(), 5),
 					new BoardCoordinate(Player.WHITE.homeRank(), 6)
 			)
@@ -41,7 +38,6 @@ public enum Castle implements PlayerMove {
 			new BoardCoordinate(7, 3),
 			"O-O-O",
 			Set.of(
-					new BoardCoordinate(Player.BLACK.homeRank(), 1),
 					new BoardCoordinate(Player.BLACK.homeRank(), 2),
 					new BoardCoordinate(Player.BLACK.homeRank(), 3)
 			)

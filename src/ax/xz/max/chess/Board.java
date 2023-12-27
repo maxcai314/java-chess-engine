@@ -179,61 +179,62 @@ public class Board {
 		return currentTurn;
 	}
 
+	private record ParsedQueryParams (
+			boolean shortCastle,
+			boolean longCastle,
+			PieceType piece,
+			OptionalInt rankContext,
+			OptionalInt fileContext,
+			boolean isCapture,
+			BoardCoordinate destination,
+			Optional<PieceType> promotion,
+			boolean isCheck,
+			boolean isMate
+	) {
+		public ParsedQueryParams {
+			// throw if logic error
+			if (shortCastle && longCastle)
+				throw new IllegalStateException("Can not be both short and long castle");
+			if (isMate && !isCheck)
+				throw new IllegalStateException("All checkmates must be a check as well");
+		}
+	}
+
 	/**
 	 * Converts algebraic notation into a PlayerMove
 	 * @param text The algebraic notation of the move as a string (e.g. "dxc4")
 	 * @return A PlayerMove
 	 */
 	public PlayerMove fromNotation(String text) {
-		String[] groups = parseAlgebraicNotation(text);
-
-		if (groups[2] != null) // castling
-			return switch (groups[3] == null ? Castle.shortCastle(currentTurn) : Castle.longCastle(currentTurn)) {
-				case Castle castle when getLegalMoves().contains(castle) -> castle;
-				default -> throw new IllegalArgumentException("Illegal Castle: " + text);
-			};
-
-		Piece piece = switch (groups[4]) {
-			case String s -> new Piece(currentTurn, PieceType.fromChar(s.charAt(0)));
-			case null -> new Piece(currentTurn, PieceType.PAWN);
-		};
-
-		Optional<Integer> fileClue = Optional.ofNullable(groups[5]).map(a -> a.charAt(0) - 'a');
-		Optional<Integer> rankClue = Optional.ofNullable(groups[6]).map(a -> a.charAt(0) - '1');
-
-		boolean isCapture = groups[7] != null;
-		BoardCoordinate destination = BoardCoordinate.fromString(groups[8]);
-		Optional<Piece> promotion = Optional.ofNullable(groups[9])
-				.map(a -> a.charAt(1))
-				.map(PieceType::fromChar)
-				.map(a -> new Piece(currentTurn, a));
-
-		boolean isCheck = Optional.ofNullable(groups[10])
-				.map(a -> a.charAt(0))
-				.map(((Character) '+')::equals)
-				.orElse(false);
-
-		boolean isMate = Optional.ofNullable(groups[10])
-				.map(a -> a.charAt(0))
-				.map(((Character) '#')::equals)
-				.orElse(false);
-
+		ParsedQueryParams params = parseAlgebraicNotation(text);
 		Set<PlayerMove> candidates = getLegalMoves(currentTurn);
 
-		candidates.removeIf(candidate -> !candidate.piece().equals(piece));
-
-		candidates.removeIf(candidate -> !candidate.to().equals(destination));
-		rankClue.ifPresent(rank -> candidates.removeIf(candidate -> candidate.from().rank() != rank));
-		fileClue.ifPresent(file -> candidates.removeIf(candidate -> candidate.from().file() != file));
 		candidates.removeIf(candidate -> {
 			MoveRecord record = copy().makeMove(candidate);
-			return record.isCheck() != (isCheck || isMate)
-					|| record.isCapture() != isCapture
-					|| record.isMate() != isMate;
+			return record.isCheck() != (params.isCheck())
+					|| record.isCapture() != params.isCapture()
+					|| record.isMate() != params.isMate();
 		});
 
-		promotion.ifPresent(promotionPiece -> candidates.removeIf(candidate ->
-				!(candidate instanceof Promotion promotionMove) || !promotionMove.newPiece().equals(promotionPiece)
+		if (params.shortCastle()) {
+			Castle castle = Castle.shortCastle(currentTurn);
+			if (candidates.contains(castle)) return castle;
+			else throw new IllegalArgumentException("Castling " + text + " not allowed");
+		}
+		if (params.longCastle()) {
+			Castle castle = Castle.longCastle(currentTurn);
+			if (candidates.contains(castle)) return castle;
+			else throw new IllegalArgumentException("Castling " + text + " not allowed");
+		}
+
+		candidates.removeIf(candidate -> candidate.piece().type() != params.piece());
+
+		candidates.removeIf(candidate -> !candidate.to().equals(params.destination()));
+		params.rankContext().ifPresent(rank -> candidates.removeIf(candidate -> candidate.from().rank() != rank));
+		params.fileContext().ifPresent(file -> candidates.removeIf(candidate -> candidate.from().file() != file));
+
+		params.promotion().ifPresent(promotionPiece -> candidates.removeIf(candidate ->
+				!(candidate instanceof Promotion promotionMove) || promotionMove.newPiece().type() !=(promotionPiece)
 		));
 
 		if (candidates.isEmpty()) throw new IllegalArgumentException("No moves found for " + text);
@@ -245,32 +246,61 @@ public class Board {
 	private static final String ALGEBRAIC_REGEX_PATTERN = "(([Oo0]-[Oo0](-[Oo0])?)|([KQRBN])?([a-h])??([1-8])??(x)?([a-h][1-8])(=[QRBN])?)([+#])?";
 
 	/**
-	 * Parses algebraic notation into an array of strings
-	 * @param text The algebraic notation of the move as a string (e.g. "cxd8=N+")
-	 * @return An array of strings formatted as follows:
-	 * <p> groups[0] = original text
-	 * <p> groups[1] = raw move
-	 * <p> groups[2] = castling match
-	 * <p> groups[3] = long castle
-	 * <p> groups[4] = piece
-	 * <p> groups[5] = file context
-	 * <p> groups[6] = rank context
-	 * <p> groups[7] = capture
-	 * <p> groups[8] = destination
-	 * <p> groups[9] = promotion
-	 * <p> groups[10] = threat
+	 * Parses algebraic notation into a {@link ParsedQueryParams} object.
 	 */
-	private static String[] parseAlgebraicNotation(String text) {
+	private static ParsedQueryParams parseAlgebraicNotation(String text) {
 		Pattern pattern = Pattern.compile(ALGEBRAIC_REGEX_PATTERN);
 		Matcher matcher = pattern.matcher(text);
 		if (!matcher.matches()) throw new IllegalArgumentException("Invalid algebraic notation: " + text);
 
-		String[] groups = new String[matcher.groupCount() + 1];
-		for (int i = 0; i < groups.length; i++) {
-			groups[i] = matcher.group(i);
-		}
+		boolean longCastle = matcher.group(3) != null;
+		boolean shortCastle =  !longCastle && matcher.group(2) != null;
 
-		return groups;
+		PieceType piece = switch (matcher.group(4)) {
+			case String s -> PieceType.fromChar(s.charAt(0));
+			case null -> (longCastle || shortCastle) ? null : PieceType.PAWN;
+		};
+
+		OptionalInt rankContext = switch (matcher.group(6)) {
+			case String s -> OptionalInt.of(s.charAt(0) - '1');
+			case null -> OptionalInt.empty();
+		};
+
+		OptionalInt fileContext = switch (matcher.group(5)) {
+			case String s -> OptionalInt.of(s.charAt(0) - 'a');
+			case null -> OptionalInt.empty();
+		};
+
+		boolean capture = matcher.group(7) != null;
+
+		BoardCoordinate destination = Optional.ofNullable(matcher.group(8)).map(BoardCoordinate::fromString).orElse(null);
+
+		Optional<PieceType> promotion = Optional.ofNullable(matcher.group(9))
+				.map(a -> a.charAt(1))
+				.map(PieceType::fromChar);
+
+		boolean isMate = switch (matcher.group(10)) {
+			case String s -> s.startsWith("#");
+			case null -> false;
+		};
+
+		boolean isCheck = isMate || switch (matcher.group(10)) {
+			case String s -> s.startsWith("+");
+			case null -> false;
+		};
+
+		return new ParsedQueryParams(
+				shortCastle,
+				longCastle,
+				piece,
+				rankContext,
+				fileContext,
+				capture,
+				destination,
+				promotion,
+				isCheck,
+				isMate
+		);
 	}
 
 	public boolean isEmpty(BoardCoordinate coordinate) {
