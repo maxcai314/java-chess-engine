@@ -628,7 +628,7 @@ public class Board {
 		if (halfMoves >= 100)
 			return GameState.DRAW;
 
-		if (getLegalMoves().isEmpty()) {
+		if (getLegalMoves(currentTurn).isEmpty()) {
 			if (isInCheck(currentTurn)) {
 				return GameState.ofWinner(currentTurn.opponent());
 			} else {
