@@ -62,7 +62,7 @@ public record MoveRecord(
 
 	public boolean isMate() {
 		Board result = resultantBoard();
-		return result.isInCheck(player().opponent()) && result.getLegalMoves().isEmpty() && (result.getState() == GameState.WHITE_WON || result.getState() == GameState.BLACK_WON);
+		return result.isInCheck(player().opponent()) && result.getLegalMoves().isEmpty() && result.getState() == GameState.ofWinner(player());
 	}
 
 	@Override
