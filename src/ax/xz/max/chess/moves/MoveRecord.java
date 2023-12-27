@@ -89,7 +89,7 @@ public record MoveRecord(
 					.count() > 1L;
 
 			if (move.piece().type() != PieceType.PAWN)
-				sb.append(Character.toLowerCase(move().piece().type().toChar()));
+				sb.append(Character.toUpperCase(move().piece().type().toChar()));
 
 			if (rankAmbiguous)
 				sb.append(move().from().toString().charAt(0));

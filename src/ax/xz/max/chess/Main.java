@@ -28,7 +28,7 @@ public class Main {
 			String moveName = board.makeMove(move).toString();
 			System.out.printf("Making move %s:%n", moveName);
 		}
-		System.out.printf("%n%nEnd Result: %s", board.getState());
+		System.out.printf("%n%nEnd Result: %s%n", board.getState());
 		System.out.println("Thanks for playing!");
 	}
 }
