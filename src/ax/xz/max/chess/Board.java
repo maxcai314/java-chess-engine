@@ -558,7 +558,7 @@ public class Board {
 		return legalMoves.stream()
 				.filter(a -> {
 					Board copy = copy();
-					copy.makeMove(a); // execute move without creating move metadata, infinite loop
+					copy.makeMove(a);
 					return !copy.isInCheck(currentPlayer);
 				})
 				.collect(Collectors.toSet());
@@ -654,9 +654,8 @@ public class Board {
 				}
 			}
 			if (spaces > 0) builder.append(spaces);
-			builder.append("/");
+			if (i > 0) builder.append("/");
 		}
-		builder.deleteCharAt(builder.length() - 1); // remove last slash
 		builder.append(" ");
 
 		builder.append(switch (currentTurn) {
