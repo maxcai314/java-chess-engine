@@ -12,26 +12,22 @@ public class SearchTest {
 		var evaluator = new ShannonEvaluator();
 		var searchAlgorithm = new AlphaBetaSearch(evaluator, 3);
 
-		// let the computer finish the game!
-		while (board.getState() == GameState.UNFINISHED) {
-			System.out.println(board);
-			PlayerMove move;
-			while (true) {
-				try {
-					System.out.printf("It is currently %s's turn.%n", board.currentTurn());
-					System.out.println("Enter your move in algebraic notation:");
-					move = searchAlgorithm.findBestMove(board);
-					break;
-				} catch (IllegalArgumentException e) {
-					System.out.println("\nThat's not a legal move. Please try again:");
-				}
-			}
-
-			String moveName = board.makeMove(move).toString();
-			System.out.printf("Making move %s:%n", moveName);
-		}
-		System.out.printf("%n%nEnd result: %s%n", board.getState());
-		System.out.println("Good game!");
+		finishGame(board, searchAlgorithm);
 	}
 
+	private static void finishGame(Board board, AlphaBetaSearch searchAlgorithm) {
+		while (board.getState() == GameState.UNFINISHED) {
+			System.out.println(board);
+			System.out.printf("%s to move%n", board.currentTurn());
+			PlayerMove move;
+
+			move = searchAlgorithm.findBestMove(board);
+
+			var moveRecord = board.makeMove(move);
+			System.out.printf("Making move %s:%n", moveRecord);
+		}
+		System.out.println(board);
+		System.out.printf("End result: %s%n", board.getState());
+		System.out.println("Good game!");
+	}
 }
