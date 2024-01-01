@@ -95,21 +95,40 @@ public class Board {
 				index++;
 			}
 		}
+
+		Piece whiteKing = new Piece(Player.WHITE, PieceType.KING);
+		Piece blackKing = new Piece(Player.BLACK, PieceType.KING);
+		Piece whiteRook = new Piece(Player.WHITE, PieceType.ROOK);
+		Piece blackRook = new Piece(Player.BLACK, PieceType.ROOK);
+
+		boolean whiteKingPlaced = whiteKing.equals(board[Player.WHITE.homeRank()][4]);
+		boolean blackKingPlaced = blackKing.equals(board[Player.BLACK.homeRank()][4]);
+		boolean whiteShortRookPlaced = whiteRook.equals(board[Player.WHITE.homeRank()][7]);
+		boolean blackShortRookPlaced = blackRook.equals(board[Player.BLACK.homeRank()][7]);
+		boolean whiteLongRookPlaced = whiteRook.equals(board[Player.WHITE.homeRank()][0]);
+		boolean blackLongRookPlaced = blackRook.equals(board[Player.BLACK.homeRank()][0]);
+
+		boolean whiteShortCastle = whiteKingPlaced && whiteShortRookPlaced;
+		boolean whiteLongCastle = whiteKingPlaced && whiteLongRookPlaced;
+		boolean blackShortCastle = blackKingPlaced && blackShortRookPlaced;
+		boolean blackLongCastle = blackKingPlaced && blackLongRookPlaced;
+
 		if (words.length == 1) {
-			return new Board(board, Player.WHITE, new ArrayList<>(), true, true, true, true, 0, 0);
+			return new Board(board, Player.WHITE, new ArrayList<>(), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, 0, 0);
 		}
 
 		Player currentPlayer = Player.fromChar(words[1].charAt(0));
 
 		if (words.length == 2) {
-			return new Board(board, currentPlayer, new ArrayList<>(), true, true, true, true, 0, 0);
+			return new Board(board, currentPlayer, new ArrayList<>(), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, 0, 0);
 		}
 
 		String castlingRights = words[2];
-		boolean whiteShortCastle = castlingRights.contains("K");
-		boolean whiteLongCastle = castlingRights.contains("Q");
-		boolean blackShortCastle = castlingRights.contains("k");
-		boolean blackLongCastle = castlingRights.contains("q");
+
+		whiteShortCastle &= castlingRights.contains("K");
+		whiteLongCastle &= castlingRights.contains("Q");
+		blackShortCastle &= castlingRights.contains("k");
+		blackLongCastle &= castlingRights.contains("q");
 
 		if (words.length == 3) {
 			return new Board(board, currentPlayer, new ArrayList<>(), whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle, 0, 0);
@@ -173,10 +192,6 @@ public class Board {
 
 	public void removePiece(BoardCoordinate coordinate) {
 		board[coordinate.rank()][coordinate.file()] = null;
-	}
-
-	public Player getCurrentTurn() {
-		return currentTurn;
 	}
 
 	private record ParsedQueryParams (
@@ -609,6 +624,20 @@ public class Board {
 
 	public MoveRecord makeMove(String notation) {
 		return makeMove(fromNotation(notation));
+	}
+
+	public void unmakeMove(MoveRecord moveRecord) {
+		var prevBoard = moveRecord.prevBoard();
+		moves.clear();
+		moves.addAll(prevBoard.moves);
+		System.arraycopy(prevBoard.copy().board, 0, board, 0, board.length);
+		this.currentTurn = prevBoard.currentTurn;
+		this.whiteShortCastle = prevBoard.whiteShortCastle;
+		this.whiteLongCastle = prevBoard.whiteLongCastle;
+		this.blackShortCastle = prevBoard.blackShortCastle;
+		this.blackLongCastle = prevBoard.blackLongCastle;
+		this.halfMoves = prevBoard.halfMoves;
+		this.numMoves = prevBoard.numMoves;
 	}
 
 	public int maxRepeatedPositions() {

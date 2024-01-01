@@ -253,7 +253,7 @@ public class BoardTest {
 
 		for (String move : opening) {
 			System.out.println("\n\n");
-			System.out.println(board.getCurrentTurn() + ": " + move);
+			System.out.println(board.currentTurn() + ": " + move);
 			PlayerMove playerMove = board.fromNotation(move);
 
 			assertTrue(board.getLegalMoves().contains(playerMove));
