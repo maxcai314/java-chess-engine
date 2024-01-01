@@ -93,18 +93,16 @@ public enum Castle implements PlayerMove {
 	}
 
 	@Override
-	public void execute(Board board) {
-		board.placePiece(king, to);
-		board.removePiece(from);
-		board.placePiece(rook, rookTo);
-		board.removePiece(rookFrom);
-		board.revokeShortCastle(getPlayer());
-		board.revokeLongCastle(getPlayer());
-
-		board.switchTurn();
-
-		board.incrementNumMoves();
-		board.incrementHalfMoves(); // it's impossible for castles to be captures or pawn pushes
+	public BoardState apply(BoardState board) {
+		return board
+				.placePiece(king, to)
+				.removePiece(from)
+				.placePiece(rook, rookTo)
+				.removePiece(rookFrom)
+				.revokeShortCastle(getPlayer())
+				.revokeLongCastle(getPlayer())
+				.withEnPassantTarget(null) // castles never allow en passant
+				.prepareNextMove(false); // castles are never captures or pawn pushes
 	}
 
 	public Set<BoardCoordinate> getClearanceSquares() {

@@ -73,7 +73,7 @@ public record AlphaBetaSearch(
 		}
 
 		private double alphaBetaMax(double alpha, double beta, int depthRemaining) {
-			if (depthRemaining == 0 || board.getState() != GameState.UNFINISHED) return evaluate();
+			if (depthRemaining == 0 || board.gameState() != GameState.UNFINISHED) return evaluate();
 			for (PlayerMove move : board.getLegalMoves()) {
 				var moveRecord = board.makeMove(move);
 				try {
@@ -90,7 +90,7 @@ public record AlphaBetaSearch(
 		}
 
 		private double alphaBetaMin(double alpha, double beta, int depthRemaining) {
-			if (depthRemaining == 0 || board.getState() != GameState.UNFINISHED) return evaluate();
+			if (depthRemaining == 0 || board.gameState() != GameState.UNFINISHED) return evaluate();
 			for (PlayerMove move : board.getLegalMoves()) {
 				var moveRecord = board.makeMove(move);
 				try {

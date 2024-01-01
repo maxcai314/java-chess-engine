@@ -19,14 +19,11 @@ public record Promotion(
 	}
 
 	@Override
-	public void execute(Board board) {
-		board.placePiece(newPiece, to);
-		board.removePiece(from);
-
-		board.switchTurn();
-
-		board.incrementHalfMoves();
-		board.resetHalfMoves(); // promotions are ALWAYS pawn pushes
+	public BoardState apply(BoardState board) {
+		return board
+				.placePiece(newPiece, to)
+				.removePiece(from)
+				.prepareNextMove(true);
 	}
 
 	@Override

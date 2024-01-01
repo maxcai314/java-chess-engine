@@ -26,7 +26,7 @@ import java.util.stream.IntStream;
 public class ShannonEvaluator implements BoardEvaluator {
 	@Override
 	public double evaluate(Board board) {
-		switch (board.getState()) {
+		switch (board.gameState()) {
 			case WHITE_WON -> {
 				return 1000 - board.getNumMoves(); // prioritize tempo: find fastest mate
 			}

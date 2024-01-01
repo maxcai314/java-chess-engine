@@ -5,16 +5,16 @@ import ax.xz.max.chess.*;
 public record RegularMove(Piece piece, BoardCoordinate from, BoardCoordinate to) implements PlayerMove {
 
 	@Override
-	public void execute(Board board) {
+	public BoardState apply(BoardState board) {
 		if (board.hasCastlingRights(getPlayer()) && from.rank() == getPlayer().homeRank()) {
 			if (piece.type() == PieceType.KING) {
-				board.revokeShortCastle(getPlayer());
-				board.revokeLongCastle(getPlayer());
+				board = board.revokeShortCastle(getPlayer());
+				board = board.revokeLongCastle(getPlayer());
 			} else if (piece.type() == PieceType.ROOK) {
 				if (from.file() == 0) {
-					board.revokeLongCastle(getPlayer());
+					board = board.revokeLongCastle(getPlayer());
 				} else if (from.file() == 7) {
-					board.revokeShortCastle(getPlayer());
+					board = board.revokeShortCastle(getPlayer());
 				}
 			}
 		}
@@ -22,14 +22,21 @@ public record RegularMove(Piece piece, BoardCoordinate from, BoardCoordinate to)
 		boolean isCapture = board.pieceAt(to) != null;
 		boolean isPawnMove = piece.type() == PieceType.PAWN;
 
-		board.placePiece(piece, to);
-		board.removePiece(from);
+		BoardCoordinate enPassantTarget = null;
+		if (
+				isPawnMove
+				&& !isCapture
+				&& from.rank() == getPlayer().pawnRank()
+				&& to.rank() == getPlayer().pawnRank() + getPlayer().pawnDirection() * 2
+		) {
+			enPassantTarget = new BoardCoordinate(to.rank() - getPlayer().pawnDirection(), to.file());
+		}
 
-		board.switchTurn();
-
-		board.incrementNumMoves();
-		if (isCapture || isPawnMove) board.resetHalfMoves();
-		else board.incrementHalfMoves();
+		return board
+				.placePiece(piece, to)
+				.removePiece(from)
+				.prepareNextMove(isCapture || isPawnMove)
+				.withEnPassantTarget(enPassantTarget);
 	}
 
 	@Override

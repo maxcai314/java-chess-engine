@@ -4,23 +4,17 @@ import ax.xz.max.chess.*;
 
 import java.util.Set;
 
+/**
+ * The dataclass of a move applied on a specific position.
+ */
 public record MoveRecord(
-		Board prevBoard,
-		PlayerMove move
+		BoardState prevBoard,
+		PlayerMove move/*,
+		GameState resultantState()*/ // todo: add resultant state
 ) {
-	public MoveRecord {
-		prevBoard = prevBoard.copy();
-	}
 
-	@Override
-	public Board prevBoard() {
-		return prevBoard.copy();
-	}
-
-	public Board resultantBoard() {
-		Board board = prevBoard();
-		board.makeMove(move());
-		return board;
+	public BoardState resultantBoard() {
+		return move.apply(prevBoard);
 	}
 
 	public Player player() {
@@ -31,8 +25,11 @@ public record MoveRecord(
 		return this.resultantBoard().equals(that.resultantBoard());
 	}
 
-	public GameState resultantState() {
-		return resultantBoard().getState();
+	/**
+	 * @return the estimated current state of the game, based on the current board state, without considering repetition
+	 */
+	public GameState resultantStateEstimate() {
+		return resultantBoard().getCurrentState();
 	}
 
 	@Override
@@ -47,7 +44,7 @@ public record MoveRecord(
 	}
 
 	public boolean gameEnded() {
-		return resultantState() != GameState.UNFINISHED;
+		return resultantStateEstimate() != GameState.UNFINISHED; // todo: use better method resultantState var
 	}
 
 	public boolean isCapture() {
@@ -61,8 +58,10 @@ public record MoveRecord(
 	}
 
 	public boolean isMate() {
-		Board result = resultantBoard();
-		return result.isInCheck(player().opponent()) && result.getLegalMoves().isEmpty() && result.getState() == GameState.ofWinner(player());
+		var result = resultantBoard();
+		return result.isInCheck(player().opponent())
+				&& result.getLegalMoves().isEmpty()
+				&& result.getCurrentState() == GameState.ofWinner(player()); // resultant state estimate will suffice
 	}
 
 	@Override

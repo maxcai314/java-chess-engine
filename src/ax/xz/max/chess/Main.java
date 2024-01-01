@@ -1,6 +1,5 @@
 package ax.xz.max.chess;
 
-import ax.xz.max.chess.Board;
 import ax.xz.max.chess.moves.PlayerMove;
 
 import java.util.Scanner;
@@ -11,7 +10,7 @@ public class Main {
 
 		Board board = new Board();
 		System.out.println("2-player chess game");
-		while (board.getState() == GameState.UNFINISHED) {
+		while (board.gameState() == GameState.UNFINISHED) {
 			System.out.println(board);
 			PlayerMove move;
 			while (true) {
@@ -28,7 +27,7 @@ public class Main {
 			String moveName = board.makeMove(move).toString();
 			System.out.printf("Making move %s:%n", moveName);
 		}
-		System.out.printf("%n%nEnd Result: %s%n", board.getState());
+		System.out.printf("%n%nEnd Result: %s%n", board.gameState());
 		System.out.println("Thanks for playing!");
 	}
 }

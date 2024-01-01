@@ -15,15 +15,13 @@ public record EnPassant(
 	}
 
 	@Override
-	public void execute(Board board) {
-		board.placePiece(pawn, to);
-		board.removePiece(from);
-		board.removePiece(capturedPawnCoordinates);
-
-		board.switchTurn();
-
-		board.incrementNumMoves();
-		board.resetHalfMoves(); // en passant is ALWAYS capture and pawn push
+	public BoardState apply(BoardState board) {
+		return board
+				.placePiece(pawn, to)
+				.removePiece(from)
+				.removePiece(capturedPawnCoordinates)
+				.prepareNextMove(true)
+				.withEnPassantTarget(null);
 	}
 
 	@Override

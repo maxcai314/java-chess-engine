@@ -16,7 +16,7 @@ public class SearchTest {
 	}
 
 	private static void finishGame(Board board, AlphaBetaSearch searchAlgorithm) {
-		while (board.getState() == GameState.UNFINISHED) {
+		while (board.gameState() == GameState.UNFINISHED) {
 			System.out.println(board);
 			System.out.printf("%s to move%n", board.currentTurn());
 			PlayerMove move;
@@ -27,7 +27,7 @@ public class SearchTest {
 			System.out.printf("Making move %s:%n", moveRecord);
 		}
 		System.out.println(board);
-		System.out.printf("End result: %s%n", board.getState());
+		System.out.printf("End result: %s%n", board.gameState());
 		System.out.println("Good game!");
 	}
 }

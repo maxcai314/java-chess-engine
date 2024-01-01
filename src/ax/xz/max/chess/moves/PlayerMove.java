@@ -2,13 +2,13 @@ package ax.xz.max.chess.moves;
 
 import ax.xz.max.chess.*;
 
-public sealed interface PlayerMove extends BoardCommand permits RegularMove, Castle, EnPassant, Promotion {
+public sealed interface PlayerMove extends BoardUpdater permits RegularMove, Castle, EnPassant, Promotion {
 	/**
 	 * Executes the changes via public methods in Board.
 	 * Is not responsible for incrementing move count
 	 */
 	@Override
-	void execute(Board board);
+	BoardState apply(BoardState board);
 
 	/**
 	 * @return the primary piece which makes the move

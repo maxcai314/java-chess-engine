@@ -398,21 +398,21 @@ public class BoardTest {
 		System.out.println(board);
 		System.out.println("\n\n");
 
-		assertEquals(GameState.UNFINISHED, board.getState());
+		assertEquals(GameState.UNFINISHED, board.gameState());
 		board.makeMove("e4");
-		assertEquals(GameState.UNFINISHED, board.getState());
+		assertEquals(GameState.UNFINISHED, board.gameState());
 		board.makeMove("d5");
-		assertEquals(GameState.UNFINISHED, board.getState());
+		assertEquals(GameState.UNFINISHED, board.gameState());
 		board.makeMove("Nf3");
-		assertEquals(GameState.UNFINISHED, board.getState());
+		assertEquals(GameState.UNFINISHED, board.gameState());
 		board.makeMove("dxe4");
-		assertEquals(GameState.UNFINISHED, board.getState());
+		assertEquals(GameState.UNFINISHED, board.gameState());
 		board.makeMove("Ne5");
-		assertEquals(GameState.UNFINISHED, board.getState());
+		assertEquals(GameState.UNFINISHED, board.gameState());
 		board.makeMove("f6");
-		assertEquals(GameState.UNFINISHED, board.getState());
+		assertEquals(GameState.UNFINISHED, board.gameState());
 		board.makeMove("Qh5+");
-		assertEquals(GameState.UNFINISHED, board.getState());
+		assertEquals(GameState.UNFINISHED, board.gameState());
 
 		assertTrue(board.isInCheck(Player.BLACK));
 		assertFalse(board.isInCheck(Player.WHITE));
@@ -423,13 +423,13 @@ public class BoardTest {
 		System.out.println("\n\n");
 
 		board.makeMove("g6");
-		assertEquals(GameState.UNFINISHED, board.getState());
+		assertEquals(GameState.UNFINISHED, board.gameState());
 		board.makeMove("Bc4");
-		assertEquals(GameState.UNFINISHED, board.getState());
+		assertEquals(GameState.UNFINISHED, board.gameState());
 		board.makeMove("gxh5");
-		assertEquals(GameState.UNFINISHED, board.getState());
+		assertEquals(GameState.UNFINISHED, board.gameState());
 		board.makeMove("Bf7#");
-		assertEquals(GameState.WHITE_WON, board.getState());
+		assertEquals(GameState.WHITE_WON, board.gameState());
 
 		System.out.println(board);
 		System.out.println("Checkmate!");
@@ -460,16 +460,16 @@ public class BoardTest {
 			PlayerMove playerMove = simulation.fromNotation(move);
 			assertTrue(simulation.getLegalMoves().contains(playerMove));
 			simulation.makeMove(playerMove);
-			assertEquals(state, simulation.getState());
+			assertEquals(state, simulation.gameState());
 			System.out.println(simulation);
 			System.out.println("Position: " + simulation.toFEN());
-			System.out.println("State: " + simulation.getState());
+			System.out.println("State: " + simulation.gameState());
 			System.out.println("\n");
 		});
 
 		// famous opening
 		Board opening = new Board();
-		assertEquals(GameState.UNFINISHED, opening.getState());
+		assertEquals(GameState.UNFINISHED, opening.gameState());
 		opening.makeMove("e4");
 		opening.makeMove("e5");
 		opening.makeMove("Ke2");
@@ -484,18 +484,18 @@ public class BoardTest {
 
 		System.out.println(opening);
 		System.out.println("Repetitions: " + opening.maxRepeatedPositions());
-		System.out.println("State: " + opening.getState());
+		System.out.println("State: " + opening.gameState());
 		System.out.println("FEN: " + opening.toFEN());
 
-		assertEquals(GameState.UNFINISHED, opening.getState());
+		assertEquals(GameState.UNFINISHED, opening.gameState());
 		opening.makeMove("Ke7"); // third repetition
 
 		System.out.println(opening);
 		System.out.println("Repetitions: " + opening.maxRepeatedPositions());
-		System.out.println("State: " + opening.getState());
+		System.out.println("State: " + opening.gameState());
 		System.out.println("FEN: " + opening.toFEN());
 
-		assertEquals(GameState.DRAW, opening.getState());
+		assertEquals(GameState.DRAW, opening.gameState());
 	}
 
 	@Test
