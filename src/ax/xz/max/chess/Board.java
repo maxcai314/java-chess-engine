@@ -59,6 +59,11 @@ public class Board {
 		halfMoves++;
 	}
 
+	/** @return the number of individual moves */
+	public int getNumMoves() {
+		return numMoves;
+	}
+
 	public void resetHalfMoves() {
 		halfMoves = 0;
 	}
