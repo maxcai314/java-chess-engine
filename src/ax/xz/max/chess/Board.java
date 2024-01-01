@@ -656,7 +656,7 @@ public class Board {
 				.orElse(0);
 	}
 
-	public GameState getState() {
+	public GameState getState() { // todo: draw by insufficient material
 		if (maxRepeatedPositions() >= 3)
 			return GameState.DRAW;
 		if (halfMoves >= 100)

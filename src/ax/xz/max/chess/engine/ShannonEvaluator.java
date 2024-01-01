@@ -28,10 +28,10 @@ public class ShannonEvaluator implements BoardEvaluator {
 	public double evaluate(Board board) {
 		switch (board.getState()) {
 			case WHITE_WON -> {
-				return 1000;
+				return 1000 - board.getNumMoves(); // prioritize tempo: find fastest mate
 			}
 			case BLACK_WON -> {
-				return -1000;
+				return -1000 + board.getNumMoves();
 			}
 			case DRAW -> {
 				return 0;
