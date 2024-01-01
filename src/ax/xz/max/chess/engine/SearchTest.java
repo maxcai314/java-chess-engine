@@ -6,8 +6,10 @@ import ax.xz.max.chess.moves.PlayerMove;
 
 public class SearchTest {
 	public static void main(String[] args) {
-		Board board = Board.fromFEN("5Kbk/6pp/6P1/8/8/8/8/7R w - - 0 1");
-		System.out.println("Puzzle- mate in 2:");
+//		Board board = Board.fromFEN("5Kbk/6pp/6P1/8/8/8/8/7R w - - 0 1");
+//		System.out.println("Puzzle- mate in 2:");
+
+		Board board = new Board();
 
 		var evaluator = new ShannonEvaluator();
 		var searchAlgorithm = new AlphaBetaSearch(evaluator, 3);

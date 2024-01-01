@@ -40,6 +40,7 @@ public class ShannonEvaluator implements BoardEvaluator {
 
 		return materialReward(board)
 				+ mobilityReward(board)
+				+ tempoReward(board)
 				- doubledPawnPenalty(board)
 				- blockedPawnPenalty(board)
 				- isolatedPawnPenalty(board);
@@ -131,5 +132,12 @@ public class ShannonEvaluator implements BoardEvaluator {
 
 	private static double mobilityReward(Board board) {
 		return 0.1 * (board.getLegalMoves(Player.WHITE).size() - board.getLegalMoves(Player.BLACK).size());
+	}
+
+	private static double tempoReward(Board board) {
+		return switch (board.currentTurn()) {
+			case WHITE -> 0.05;
+			case BLACK -> -0.05;
+		};
 	}
 }

@@ -100,8 +100,16 @@ public class Board {
 		return record;
 	}
 
+	private int indexOf(MoveRecord moveRecord) {
+		for (int i = moves.size()-1; i >= 0; i--) {
+			if (moves.get(i) == moveRecord)
+				return i;
+		}
+		return -1; // not found
+	}
+
 	public void unmakeMove(MoveRecord moveRecord) {
-		int index = moves.indexOf(moveRecord);
+		int index = indexOf(moveRecord);
 		if (index == -1)
 			throw new IllegalArgumentException("MoveRecord not found in Board object");
 
