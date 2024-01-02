@@ -12,7 +12,12 @@ public class SearchTest {
 		Board board = new Board();
 
 		var evaluator = new ShannonEvaluator();
-		var searchAlgorithm = new AlphaBetaSearch(evaluator, 3);
+		var searchAlgorithm = new AlphaBetaSearch(evaluator, 4);
+
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			System.out.println("Shutting down...\n");
+			System.out.println(board.toPGN());
+		}));
 
 		finishGame(board, searchAlgorithm);
 	}

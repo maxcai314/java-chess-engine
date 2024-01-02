@@ -223,10 +223,10 @@ public record BoardState (
 
 		builder.append(" ");
 
-		Optional<PlayerMove> passants = getLegalMoves().stream()
-				.filter(a -> a instanceof EnPassant)
-				.findAny();
-		passants.ifPresentOrElse(playerMove -> builder.append(playerMove.to()).append(" "), () -> builder.append("- "));
+		switch (enPassantTarget) {
+			case null -> builder.append("-");
+			case BoardCoordinate b -> builder.append(b).append(" ");
+		}
 
 		builder.append(halfMoveClock)
 				.append(" ")
@@ -237,9 +237,8 @@ public record BoardState (
 
 	@Override
 	public int hashCode() {
-		return Arrays.deepHashCode(
-				Arrays.stream(toFEN().split("\\s+")).limit(3).toArray(String[]::new)
-		);
+		String[] words = toFEN().split("\\s+");
+		return Objects.hash(words[0], words[1], words[2]); // use first 3 words
 	}
 
 	@Override
@@ -489,7 +488,7 @@ public record BoardState (
 		Player player = opponent.opponent();
 		return Stream.of(ATTACKING_PIECES)
 				.flatMap(pieceType -> attacksUsingPiece(new Piece(player, pieceType), position).stream())
-				.anyMatch(move -> pieceAt(move.to()) != null && move.piece().type() == pieceAt(move.to()).type());
+				.anyMatch(move -> new Piece(opponent, move.piece().type()).equals(pieceAt(move.to())));
 	}
 
 	public boolean isInCheck(Player player) {

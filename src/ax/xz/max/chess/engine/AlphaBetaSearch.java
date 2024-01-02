@@ -2,7 +2,12 @@ package ax.xz.max.chess.engine;
 
 import ax.xz.max.chess.Board;
 import ax.xz.max.chess.GameState;
-import ax.xz.max.chess.moves.PlayerMove;
+import ax.xz.max.chess.moves.*;
+
+import java.util.Comparator;
+import java.util.List;
+
+import static ax.xz.max.chess.PieceType.*;
 
 // todo: interface MoveAlgorithm for next-move generator?
 public record AlphaBetaSearch(
@@ -32,6 +37,39 @@ public record AlphaBetaSearch(
 
 		public double evaluate() {
 			return evaluator.evaluate(board);
+		}
+
+		private List<PlayerMove> orderedLegalMoves() {
+			return board.getLegalMoves().stream()
+					.sorted(Comparator.comparingDouble(this::movePriority).reversed())
+					.toList();
+		}
+
+		private double movePriority(PlayerMove move) {
+			double result = 0;
+			double piecePriority = switch (move.piece().type()) {
+				case KNIGHT, BISHOP -> 10;
+				case ROOK, QUEEN -> 15;
+				case KING -> 5;
+				case PAWN -> 1;
+			};
+			result += piecePriority;
+			var record = new MoveRecord(board.boardState(), move);
+
+			if (record.isCheck()) {
+				result += 100; // ALWAYS LOOK FOR CHECKS
+			}
+
+			if (
+					record.isCapture()
+							|| move instanceof EnPassant
+							|| move instanceof Castle
+							|| move instanceof Promotion
+			) {
+				result += 50;
+			}
+
+			return result;
 		}
 
 		public PlayerMove findMax() {

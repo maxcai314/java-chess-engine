@@ -42,6 +42,28 @@ public class Board {
 		return boardState().toString();
 	}
 
+	public String toPGN() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("[SetUp \"1\"]\n");
+
+		String initialFEN;
+		if (moves.isEmpty())
+			initialFEN = toFEN();
+		else
+			initialFEN = moves.get(0).prevBoard().toFEN();
+
+		builder.append("[FEN \"").append(initialFEN).append("\"]\n");
+		for (MoveRecord move : moves) {
+			builder.append(move.prevBoard().fullMoveNumber() / 2 + 1);
+			builder.append(switch (move.player()) {
+				case WHITE -> ". ";
+				case BLACK -> "... ";
+			});
+			builder.append(move).append(" ");
+		}
+		return builder.toString();
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (!(o instanceof Board that)) return false;
@@ -124,6 +146,7 @@ public class Board {
 	public int maxRepeatedPositions() {
 		// count duplicates using Stream
 		return moves.stream()
+				.map(MoveRecord::resultantBoard)
 				.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
 				.values()
 				.stream()
