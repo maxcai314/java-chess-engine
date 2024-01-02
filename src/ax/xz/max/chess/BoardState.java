@@ -25,10 +25,6 @@ public record BoardState (
 	boolean blackShortCastle,
 	boolean blackLongCastle
 ) {
-//	public BoardState {
-//		board.legalMoves().clear();
-//	}
-
 	public static BoardState defaultBoard() {
 		return fromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
 	}
@@ -509,15 +505,11 @@ public record BoardState (
 		return isDefendedBy(player.opponent(), kingLocation);
 	}
 
-	public Set<PlayerMove> getLegalMoves(Player currentPlayer) {
-		return new HashSet<>(board.legalMoves().computeIfAbsent(currentPlayer, this::getLegalMoves0));
-	}
-
 	public Set<PlayerMove> getLegalMoves() {
 		return getLegalMoves(currentTurn);
 	}
 
-	private Set<PlayerMove> getLegalMoves0(Player currentPlayer) {
+	public Set<PlayerMove> getLegalMoves(Player currentPlayer) {
 		ArrayList<PlayerMove> legalMoves = new ArrayList<>();
 
 		for (int rank = 0; rank < 8; rank++) {

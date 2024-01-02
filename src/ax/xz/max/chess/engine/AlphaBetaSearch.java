@@ -7,8 +7,6 @@ import ax.xz.max.chess.moves.*;
 import java.util.Comparator;
 import java.util.List;
 
-import static ax.xz.max.chess.PieceType.*;
-
 // todo: interface MoveAlgorithm for next-move generator?
 public record AlphaBetaSearch(
 		BoardEvaluator evaluator,
