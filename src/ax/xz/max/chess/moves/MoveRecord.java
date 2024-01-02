@@ -71,25 +71,25 @@ public record MoveRecord(
 			sb.append(castle); // we're not done, what if check/mate?
 		} else { // we have to format like a normal move
 			Set<PlayerMove> legalMoves = prevBoard().getLegalMoves();
-			boolean rankAmbiguous = legalMoves.stream()
+			boolean fileAmbiguous = (move.piece().type() == PieceType.PAWN && isCapture()) || legalMoves.stream()
 					.filter(a -> a.piece() == move().piece())
 					.filter(a -> a.to() == move.to())
 					.count() > 1L;
 
-			boolean fileAmbiguous = (move.piece().type() == PieceType.PAWN && isCapture()) || legalMoves.stream()
+			boolean rankAmbiguous = (move.piece().type() != PieceType.PAWN) && legalMoves.stream()
 					.filter(a -> a.piece() == move().piece())
 					.filter(a -> a.to() == move.to())
 					.map(PlayerMove::from)
 					.map(BoardCoordinate::file)
-					.filter(file -> !rankAmbiguous || file == move.from().file()) // only filter if rank ambiguous
+					.filter(file -> !fileAmbiguous || file == move.from().rank()) // only filter if file ambiguous
 					.count() > 1L;
 
 			if (move.piece().type() != PieceType.PAWN)
 				sb.append(Character.toUpperCase(move().piece().type().toChar()));
 
-			if (rankAmbiguous)
-				sb.append(move().from().toString().charAt(0));
 			if (fileAmbiguous)
+				sb.append(move().from().toString().charAt(0));
+			if (rankAmbiguous)
 				sb.append(move().from().toString().charAt(1));
 
 			if (isCapture())
