@@ -12,23 +12,26 @@ public class SearchTest {
 		Board board = new Board();
 
 		var evaluator = new ShannonEvaluator();
-		var searchAlgorithm = new AlphaBetaSearch(evaluator, 4);
+		var whiteAlgorithm = new AlphaBetaSearch(evaluator, 8);
+		var blackAlgorithm = new AlphaBetaSearch(evaluator, 6);
 
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			System.out.println("Shutting down...\n");
 			System.out.println(board.toPGN());
 		}));
 
-		finishGame(board, searchAlgorithm);
+		finishGame(board, whiteAlgorithm, blackAlgorithm);
 	}
 
-	private static void finishGame(Board board, AlphaBetaSearch searchAlgorithm) {
+	private static void finishGame(Board board, AlphaBetaSearch white, AlphaBetaSearch black) {
 		while (board.gameState() == GameState.UNFINISHED) {
 			System.out.println(board);
-			System.out.printf("%s to move%n", board.currentTurn());
-			PlayerMove move;
+			System.out.printf("%d. %s to move%n", board.getNumMoves() / 2 + 1, board.currentTurn());
 
-			move = searchAlgorithm.findBestMove(board);
+			PlayerMove move = switch (board.currentTurn()) {
+				case WHITE -> white.findBestMove(board);
+				case BLACK -> black.findBestMove(board);
+			};
 
 			var moveRecord = board.makeMove(move);
 			System.out.printf("Making move %s:%n", moveRecord);
