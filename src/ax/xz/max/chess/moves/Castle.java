@@ -12,8 +12,14 @@ public enum Castle implements PlayerMove {
 			new BoardCoordinate(0, 3),
 			"O-O-O",
 			Set.of(
+					new BoardCoordinate(Player.WHITE.homeRank(), 1),
 					new BoardCoordinate(Player.WHITE.homeRank(), 2),
 					new BoardCoordinate(Player.WHITE.homeRank(), 3)
+			),
+			Set.of(
+					new BoardCoordinate(Player.WHITE.homeRank(), 2),
+					new BoardCoordinate(Player.WHITE.homeRank(), 3),
+					new BoardCoordinate(Player.WHITE.homeRank(), 4)
 			)
 	),
 	WHITE_SHORT(
@@ -27,6 +33,11 @@ public enum Castle implements PlayerMove {
 			Set.of(
 					new BoardCoordinate(Player.WHITE.homeRank(), 5),
 					new BoardCoordinate(Player.WHITE.homeRank(), 6)
+			),
+			Set.of(
+					new BoardCoordinate(Player.WHITE.homeRank(), 4),
+					new BoardCoordinate(Player.WHITE.homeRank(), 5),
+					new BoardCoordinate(Player.WHITE.homeRank(), 6)
 			)
 	),
 	BLACK_LONG(
@@ -38,8 +49,14 @@ public enum Castle implements PlayerMove {
 			new BoardCoordinate(7, 3),
 			"O-O-O",
 			Set.of(
+					new BoardCoordinate(Player.BLACK.homeRank(), 1),
 					new BoardCoordinate(Player.BLACK.homeRank(), 2),
 					new BoardCoordinate(Player.BLACK.homeRank(), 3)
+			),
+			Set.of(
+					new BoardCoordinate(Player.BLACK.homeRank(), 2),
+					new BoardCoordinate(Player.BLACK.homeRank(), 3),
+					new BoardCoordinate(Player.BLACK.homeRank(), 4)
 			)
 	),
 	BLACK_SHORT(
@@ -51,6 +68,11 @@ public enum Castle implements PlayerMove {
 			new BoardCoordinate(7, 5),
 			"O-O",
 			Set.of(
+					new BoardCoordinate(Player.BLACK.homeRank(), 5),
+					new BoardCoordinate(Player.BLACK.homeRank(), 6)
+			),
+			Set.of(
+					new BoardCoordinate(Player.BLACK.homeRank(), 4),
 					new BoardCoordinate(Player.BLACK.homeRank(), 5),
 					new BoardCoordinate(Player.BLACK.homeRank(), 6)
 			)
@@ -66,8 +88,9 @@ public enum Castle implements PlayerMove {
 	private final String notation;
 
 	private final Set<BoardCoordinate> clearanceSquares;
+	private final Set<BoardCoordinate> protectedSquares;
 
-	Castle(Piece king, BoardCoordinate from, BoardCoordinate to, Piece rook, BoardCoordinate rookFrom, BoardCoordinate rookTo, String notation, Set<BoardCoordinate> clearanceSquares) {
+	Castle(Piece king, BoardCoordinate from, BoardCoordinate to, Piece rook, BoardCoordinate rookFrom, BoardCoordinate rookTo, String notation, Set<BoardCoordinate> clearanceSquares, Set<BoardCoordinate> protectedSquares) {
 		this.king = king;
 		this.from = from;
 		this.to = to;
@@ -76,6 +99,7 @@ public enum Castle implements PlayerMove {
 		this.rookTo = rookTo;
 		this.notation = notation;
 		this.clearanceSquares = clearanceSquares;
+		this.protectedSquares = protectedSquares;
 	}
 
 	public static Castle longCastle(Player player) {
@@ -108,6 +132,7 @@ public enum Castle implements PlayerMove {
 	public Set<BoardCoordinate> getClearanceSquares() {
 		return clearanceSquares;
 	}
+	public Set<BoardCoordinate> getProtectedSquares() {return protectedSquares;}
 
 	@Override
 	public Piece piece() {

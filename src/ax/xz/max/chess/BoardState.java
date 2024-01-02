@@ -536,6 +536,18 @@ public class BoardState {
 		return new HashSet<>(legalMoves.computeIfAbsent(currentPlayer, this::getLegalMoves0));
 	}
 
+	private boolean canDoCastle(Castle castle) {
+		for (BoardCoordinate square : castle.getClearanceSquares()) {
+			if (!isEmpty(square))
+				return false;
+		}
+		for (BoardCoordinate square : castle.getProtectedSquares()) {
+			if (isDefendedBy(castle.getPlayer().opponent(), square))
+				return false;
+		}
+		return true;
+	}
+
 	private Set<PlayerMove> getLegalMoves0(Player currentPlayer) {
 		ArrayList<PlayerMove> legalMoves = new ArrayList<>();
 
@@ -568,35 +580,13 @@ public class BoardState {
 			}
 		}
 
-		if (!isInCheck(currentPlayer) && canShortCastle(currentPlayer)) {
-			ShortCastleSearch:
-			{
-				// check if the squares are defended
-				Castle castle = Castle.shortCastle(currentPlayer);
-				for (BoardCoordinate square : castle.getClearanceSquares()) {
-					if (!isEmpty(square))
-						break ShortCastleSearch;
-					if (isDefendedBy(currentPlayer.opponent(), square))
-						break ShortCastleSearch;
-				}
-				legalMoves.add(castle);
-			}
-		}
+		Castle shortCastle = Castle.shortCastle(currentPlayer);
+		if (!isInCheck(currentPlayer) && canShortCastle(currentPlayer) && canDoCastle(shortCastle))
+				legalMoves.add(shortCastle);
 
-		if (!isInCheck(currentPlayer) && canLongCastle(currentPlayer)) {
-			LongCastleSearch:
-			{
-				// check if the squares are defended
-				Castle castle = Castle.longCastle(currentPlayer);
-				for (BoardCoordinate square : castle.getClearanceSquares()) {
-					if (!isEmpty(square))
-						break LongCastleSearch;
-					if (isDefendedBy(currentPlayer.opponent(), square))
-						break LongCastleSearch;
-				}
-				legalMoves.add(castle);
-			}
-		}
+		Castle longCastle = Castle.longCastle(currentPlayer);
+		if (!isInCheck(currentPlayer) && canLongCastle(currentPlayer) && canDoCastle(longCastle))
+				legalMoves.add(longCastle);
 
 		// en passant
 		if (enPassantTarget != null) {
