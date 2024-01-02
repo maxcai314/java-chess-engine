@@ -74,17 +74,14 @@ public record MoveRecord(
 			boolean rankAmbiguous = legalMoves.stream()
 					.filter(a -> a.piece() == move().piece())
 					.filter(a -> a.to() == move.to())
-					.map(PlayerMove::from)
-					.map(BoardCoordinate::rank)
-					.filter(((Integer) move().from().rank())::equals) // why does java need me to manually box
 					.count() > 1L;
 
-			boolean fileAmbiguous = legalMoves.stream()
+			boolean fileAmbiguous = (move.piece().type() == PieceType.PAWN && isCapture()) || legalMoves.stream()
 					.filter(a -> a.piece() == move().piece())
 					.filter(a -> a.to() == move.to())
 					.map(PlayerMove::from)
 					.map(BoardCoordinate::file)
-					.filter(((Integer) move().from().file())::equals)
+					.filter(file -> !rankAmbiguous || file == move.from().file()) // only filter if rank ambiguous
 					.count() > 1L;
 
 			if (move.piece().type() != PieceType.PAWN)
