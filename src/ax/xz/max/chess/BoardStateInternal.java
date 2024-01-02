@@ -1,10 +1,14 @@
 package ax.xz.max.chess;
 
-import java.util.Arrays;
-import java.util.Iterator;
+import ax.xz.max.chess.moves.PlayerMove;
+
+import java.util.*;
 import java.util.stream.Stream;
 
-public record BoardStateInternal(long[] state) {
+public record BoardStateInternal(
+        long[] state, EnumMap<Player,
+        Set<PlayerMove>> legalMoves // todo: this is a REALLY ugly hack... this shouldn't be allowed
+) {
     private static final Piece[] PIECES;
     static {
         var piecesWhite = Arrays.stream(PieceType.values()).map(type -> new Piece(Player.WHITE, type));
@@ -14,7 +18,7 @@ public record BoardStateInternal(long[] state) {
     }
 
     public BoardStateInternal() {
-        this(new long[PIECES.length]);
+        this(new long[PIECES.length], new EnumMap<>(Player.class));
     }
 
     public BoardStateInternal {
@@ -45,6 +49,7 @@ public record BoardStateInternal(long[] state) {
                 state[i] &= ~(1L << (rank * 8 + file));
             }
         }
+        legalMoves.clear(); // todo: this is UNHINGED AND DISGUSTING PLEASE FIX
     }
 
     public Piece[] getRank(int rank) {
@@ -88,6 +93,10 @@ public record BoardStateInternal(long[] state) {
     }
 
     public BoardStateInternal copy() {
-        return new BoardStateInternal(Arrays.copyOf(state, state.length));
+//        var newMap = new EnumMap<Player, Set<PlayerMove>>(Player.class);
+//        for (var entry : legalMoves.entrySet()) {
+//            newMap.put(entry.getKey(), new HashSet<>(entry.getValue()));
+//        }
+        return new BoardStateInternal(Arrays.copyOf(state, state.length), new EnumMap<>(legalMoves));
     }
 }
