@@ -11,9 +11,9 @@ public class SearchTest {
 
 		Board board = new Board();
 
-		var evaluator = new ShannonEvaluator();
-		var whiteAlgorithm = new AlphaBetaSearch(evaluator, 4);
-		var blackAlgorithm = new AlphaBetaSearch(evaluator, 4);
+		var evaluator = new ImprovedShannonEvaluator();
+		var whiteAlgorithm = new IterativeDeepeningSearch(evaluator, 2);
+		var blackAlgorithm = new IterativeDeepeningSearch(evaluator, 1);
 
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			System.out.println("Shutting down...\n");
