@@ -7,18 +7,16 @@ import ax.xz.max.chess.moves.*;
 import java.util.Comparator;
 import java.util.List;
 
-// todo: interface MoveAlgorithm for next-move generator?
 public record AlphaBetaSearch(
 		BoardEvaluator evaluator,
 		int depth
-) {
+) implements MovePicker {
 	public AlphaBetaSearch {
 		if (depth <= 0)
 			throw new IllegalArgumentException("Search depth must be positive");
 	}
-
-	// @Override
-	public PlayerMove findBestMove(Board board) {
+	@Override
+	public PlayerMove chooseNextMove(Board board) {
 		SingleThreadedSearch search = new SingleThreadedSearch(board);
 		return switch (board.currentTurn()) {
 			case WHITE -> search.findMax();
@@ -74,10 +72,10 @@ public record AlphaBetaSearch(
 			PlayerMove bestMove = null;
 			double alpha = Double.NEGATIVE_INFINITY;
 			double beta = Double.POSITIVE_INFINITY;
-			for (PlayerMove move : board.getLegalMoves()) {
+			for (PlayerMove move : orderedLegalMoves()) {
 				var moveRecord = board.makeMove(move);
 				try {
-					double score = alphaBetaMin(alpha, beta, depth - 1);
+					double score = alphaBetaMin(alpha, beta, depth);
 					if (score > alpha) {
 						alpha = score; // alpha acts like max
 						bestMove = move;
@@ -93,10 +91,10 @@ public record AlphaBetaSearch(
 			PlayerMove bestMove = null;
 			double alpha = Double.NEGATIVE_INFINITY;
 			double beta = Double.POSITIVE_INFINITY;
-			for (PlayerMove move : board.getLegalMoves()) {
+			for (PlayerMove move : orderedLegalMoves()) {
 				var moveRecord = board.makeMove(move);
 				try {
-					double score = alphaBetaMax(alpha, beta, depth - 1);
+					double score = alphaBetaMax(alpha, beta, depth);
 					if (score < beta) {
 						beta = score; // beta acts like min
 						bestMove = move;
@@ -110,7 +108,7 @@ public record AlphaBetaSearch(
 
 		private double alphaBetaMax(double alpha, double beta, int depthRemaining) {
 			if (depthRemaining == 0 || board.gameState() != GameState.UNFINISHED) return evaluate();
-			for (PlayerMove move : board.getLegalMoves()) {
+			for (PlayerMove move : orderedLegalMoves()) {
 				var moveRecord = board.makeMove(move);
 				try {
 					double score = alphaBetaMin(alpha, beta, depthRemaining - 1);
@@ -127,7 +125,7 @@ public record AlphaBetaSearch(
 
 		private double alphaBetaMin(double alpha, double beta, int depthRemaining) {
 			if (depthRemaining == 0 || board.gameState() != GameState.UNFINISHED) return evaluate();
-			for (PlayerMove move : board.getLegalMoves()) {
+			for (PlayerMove move : orderedLegalMoves()) {
 				var moveRecord = board.makeMove(move);
 				try {
 					double score = alphaBetaMax(alpha, beta, depthRemaining - 1);
