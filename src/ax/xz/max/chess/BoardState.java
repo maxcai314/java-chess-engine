@@ -13,18 +13,44 @@ import java.util.stream.Stream;
  * Represents the state of a chess board.
  * This class is immutable.
  */
-public record BoardState (
-	BoardStateInternal board,
-	Player currentTurn,
-	BoardCoordinate enPassantTarget,
+public class BoardState {
 
-	int halfMoveClock,
-	int fullMoveNumber, // number of moves both players have made; divide by two to use
-	boolean whiteShortCastle,
-	boolean whiteLongCastle,
-	boolean blackShortCastle,
-	boolean blackLongCastle
-) {
+	private final BoardStateInternal board;
+	private final Player currentTurn;
+	private final BoardCoordinate enPassantTarget;
+	private final int halfMoveClock;
+	private final int fullMoveNumber;
+	private final boolean whiteShortCastle;
+	private final boolean whiteLongCastle;
+	private final boolean blackShortCastle;
+	private final boolean blackLongCastle;
+
+	private final EnumMap<Player, Set<PlayerMove>> legalMoves = new EnumMap<>(Player.class);
+	private final EnumMap<Player, Boolean> isInCheck = new EnumMap<>(Player.class);
+
+	public BoardState(
+			BoardStateInternal board,
+			Player currentTurn,
+			BoardCoordinate enPassantTarget,
+
+			int halfMoveClock,
+			int fullMoveNumber, // number of moves both players have made; divide by two to use
+			boolean whiteShortCastle,
+			boolean whiteLongCastle,
+			boolean blackShortCastle,
+			boolean blackLongCastle
+	) {
+		this.board = board;
+		this.currentTurn = currentTurn;
+		this.enPassantTarget = enPassantTarget;
+		this.halfMoveClock = halfMoveClock;
+		this.fullMoveNumber = fullMoveNumber;
+		this.whiteShortCastle = whiteShortCastle;
+		this.whiteLongCastle = whiteLongCastle;
+		this.blackShortCastle = blackShortCastle;
+		this.blackLongCastle = blackLongCastle;
+	}
+
 	public static BoardState defaultBoard() {
 		return fromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
 	}
@@ -41,15 +67,15 @@ public record BoardState (
 		var newBoard = board.copy();
 		newBoard.set(piece, coordinate.rank(), coordinate.file());
 		return new BoardState(
-			newBoard,
-			currentTurn,
-			enPassantTarget,
-			halfMoveClock,
-			fullMoveNumber,
-			whiteShortCastle,
-			whiteLongCastle,
-			blackShortCastle,
-			blackLongCastle
+				newBoard,
+				currentTurn,
+				enPassantTarget,
+				halfMoveClock,
+				fullMoveNumber,
+				whiteShortCastle,
+				whiteLongCastle,
+				blackShortCastle,
+				blackLongCastle
 		);
 	}
 
@@ -58,89 +84,88 @@ public record BoardState (
 	}
 
 	/**
-	 * @param resetHalfMoves
-	 * resets halfMoveClock if true.
-	 * otherwise, increments halfMoveClock
+	 * @param resetHalfMoves resets halfMoveClock if true.
+	 *                       otherwise, increments halfMoveClock
 	 */
 	public BoardState prepareNextMove(boolean resetHalfMoves) {
 		return new BoardState(
-			board,
-			currentTurn.opponent(),
-			null,
-			resetHalfMoves ? 0 : halfMoveClock + 1,
-			fullMoveNumber + 1,
-			whiteShortCastle,
-			whiteLongCastle,
-			blackShortCastle,
-			blackLongCastle
+				board,
+				currentTurn.opponent(),
+				null,
+				resetHalfMoves ? 0 : halfMoveClock + 1,
+				fullMoveNumber + 1,
+				whiteShortCastle,
+				whiteLongCastle,
+				blackShortCastle,
+				blackLongCastle
 		);
 	}
 
 	public BoardState withEnPassantTarget(BoardCoordinate target) {
 		return new BoardState(
-			board,
-			currentTurn,
-			target,
-			halfMoveClock,
-			fullMoveNumber,
-			whiteShortCastle,
-			whiteLongCastle,
-			blackShortCastle,
-			blackLongCastle
+				board,
+				currentTurn,
+				target,
+				halfMoveClock,
+				fullMoveNumber,
+				whiteShortCastle,
+				whiteLongCastle,
+				blackShortCastle,
+				blackLongCastle
 		);
 	}
 
 	public BoardState revokeShortCastle(Player player) {
 		if (player == Player.WHITE)
 			return new BoardState(
-				board,
-				currentTurn,
-				enPassantTarget,
-				halfMoveClock,
-				fullMoveNumber,
-				false,
-				whiteLongCastle,
-				blackShortCastle,
-				blackLongCastle
+					board,
+					currentTurn,
+					enPassantTarget,
+					halfMoveClock,
+					fullMoveNumber,
+					false,
+					whiteLongCastle,
+					blackShortCastle,
+					blackLongCastle
 			);
 		else
 			return new BoardState(
-				board,
-				currentTurn,
-				enPassantTarget,
-				halfMoveClock,
-				fullMoveNumber,
-				whiteShortCastle,
-				whiteLongCastle,
-				false,
-				blackLongCastle
+					board,
+					currentTurn,
+					enPassantTarget,
+					halfMoveClock,
+					fullMoveNumber,
+					whiteShortCastle,
+					whiteLongCastle,
+					false,
+					blackLongCastle
 			);
 	}
 
 	public BoardState revokeLongCastle(Player player) {
 		if (player == Player.WHITE)
 			return new BoardState(
-				board,
-				currentTurn,
-				enPassantTarget,
-				halfMoveClock,
-				fullMoveNumber,
-				whiteShortCastle,
-				false,
-				blackShortCastle,
-				blackLongCastle
+					board,
+					currentTurn,
+					enPassantTarget,
+					halfMoveClock,
+					fullMoveNumber,
+					whiteShortCastle,
+					false,
+					blackShortCastle,
+					blackLongCastle
 			);
 		else
 			return new BoardState(
-				board,
-				currentTurn,
-				enPassantTarget,
-				halfMoveClock,
-				fullMoveNumber,
-				whiteShortCastle,
-				whiteLongCastle,
-				blackShortCastle,
-				false
+					board,
+					currentTurn,
+					enPassantTarget,
+					halfMoveClock,
+					fullMoveNumber,
+					whiteShortCastle,
+					whiteLongCastle,
+					blackShortCastle,
+					false
 			);
 	}
 
@@ -169,7 +194,7 @@ public record BoardState (
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("  _________________\n");
-		for (int i=7;i>=0;i--) { // flip board
+		for (int i = 7; i >= 0; i--) { // flip board
 			builder.append(i + 1).append("| ");
 			for (Piece piece : board.getRank(i)) {
 				builder.append(piece == null ? " " : piece.toChar()).append(" ");
@@ -229,7 +254,7 @@ public record BoardState (
 
 	@Override
 	public int hashCode() {
-		String[] words = toFEN().split("\\s+");
+		String[] words = toFEN().split("\\s+"); // hash objects instead of FEN
 		return Objects.hash(words[0], words[1], words[2]); // use first 3 words
 	}
 
@@ -385,76 +410,70 @@ public record BoardState (
 	 */
 	private Set<PlayerMove> attacksUsingPiece(Piece piece, BoardCoordinate position) {
 		return switch (piece.type()) {
-			case PAWN ->
-					Stream.of(1, -1)
-							.map(a -> position.step(piece.owner().pawnDirection(), a))
-							.filter(BoardCoordinate::isValid)
-							.filter(a -> !isEmpty(a) && pieceAt(a).owner() != piece.owner())
-							.flatMap(a ->
-									a.rank() == piece.owner().opponent().homeRank() ?
-											Stream.of(Promotion.allPromotions(piece, position, a)) :
-											Stream.of(new RegularMove(piece, position, a))
-							)
-							.map(PlayerMove.class::cast)
-							.collect(Collectors.toSet());
+			case PAWN -> Stream.of(1, -1)
+					.map(a -> position.step(piece.owner().pawnDirection(), a))
+					.filter(BoardCoordinate::isValid)
+					.filter(a -> !isEmpty(a) && pieceAt(a).owner() != piece.owner())
+					.flatMap(a ->
+							a.rank() == piece.owner().opponent().homeRank() ?
+									Stream.of(Promotion.allPromotions(piece, position, a)) :
+									Stream.of(new RegularMove(piece, position, a))
+					)
+					.map(PlayerMove.class::cast)
+					.collect(Collectors.toSet());
 
-			case KNIGHT ->
-					KNIGHT_STEPS.stream()
-							.map(position::step)
-							.filter(BoardCoordinate::isValid)
-							.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
-							.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-							.collect(Collectors.toSet());
+			case KNIGHT -> KNIGHT_STEPS.stream()
+					.map(position::step)
+					.filter(BoardCoordinate::isValid)
+					.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
+					.map(a -> (PlayerMove) new RegularMove(piece, position, a))
+					.collect(Collectors.toSet());
 
-			case KING ->
-					ALL_STEPS.stream()
-							.map(position::step)
-							.filter(BoardCoordinate::isValid)
-							.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
-							.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-							.collect(Collectors.toSet());
+			case KING -> ALL_STEPS.stream()
+					.map(position::step)
+					.filter(BoardCoordinate::isValid)
+					.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
+					.map(a -> (PlayerMove) new RegularMove(piece, position, a))
+					.collect(Collectors.toSet());
 
-			case BISHOP ->
-					DIAGONAL_STEPS.stream()
-							.flatMap(step -> {
-								ArrayList<BoardCoordinate> candidates = new ArrayList<>();
-								for (BoardCoordinate candidate = position.step(step); candidate.isValid(); candidate = candidate.step(step)) {
-									candidates.add(candidate);
-									if (!isEmpty(candidate)) break;
-								}
-								return candidates.stream();
-							})
-							.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
-							.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-							.collect(Collectors.toSet());
+			case BISHOP -> DIAGONAL_STEPS.stream()
+					.flatMap(step -> {
+						ArrayList<BoardCoordinate> candidates = new ArrayList<>();
+						for (BoardCoordinate candidate = position.step(step); candidate.isValid(); candidate = candidate.step(step)) {
+							candidates.add(candidate);
+							if (!isEmpty(candidate)) break;
+						}
+						return candidates.stream();
+					})
+					.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
+					.map(a -> (PlayerMove) new RegularMove(piece, position, a))
+					.collect(Collectors.toSet());
 
-			case ROOK ->
-					ORTHOGONAL_STEPS.stream()
-							.flatMap(step -> {
-								ArrayList<BoardCoordinate> candidates = new ArrayList<>();
-								for (BoardCoordinate candidate = position.step(step); candidate.isValid(); candidate = candidate.step(step)) {
-									candidates.add(candidate);
-									if (!isEmpty(candidate)) break;
-								}
-								return candidates.stream();
-							})
-							.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
-							.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-							.collect(Collectors.toSet());
+			case ROOK -> ORTHOGONAL_STEPS.stream()
+					.flatMap(step -> {
+						ArrayList<BoardCoordinate> candidates = new ArrayList<>();
+						for (BoardCoordinate candidate = position.step(step); candidate.isValid(); candidate = candidate.step(step)) {
+							candidates.add(candidate);
+							if (!isEmpty(candidate)) break;
+						}
+						return candidates.stream();
+					})
+					.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
+					.map(a -> (PlayerMove) new RegularMove(piece, position, a))
+					.collect(Collectors.toSet());
 
-			case QUEEN ->
-					ALL_STEPS.stream()
-							.flatMap(step -> {
-								ArrayList<BoardCoordinate> candidates = new ArrayList<>();
-								for (BoardCoordinate candidate = position.step(step); candidate.isValid(); candidate = candidate.step(step)) {
-									candidates.add(candidate);
-									if (!isEmpty(candidate)) break;
-								}
-								return candidates.stream();
-							})
-							.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
-							.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-							.collect(Collectors.toSet());
+			case QUEEN -> ALL_STEPS.stream()
+					.flatMap(step -> {
+						ArrayList<BoardCoordinate> candidates = new ArrayList<>();
+						for (BoardCoordinate candidate = position.step(step); candidate.isValid(); candidate = candidate.step(step)) {
+							candidates.add(candidate);
+							if (!isEmpty(candidate)) break;
+						}
+						return candidates.stream();
+					})
+					.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
+					.map(a -> (PlayerMove) new RegularMove(piece, position, a))
+					.collect(Collectors.toSet());
 		};
 	}
 
@@ -472,7 +491,7 @@ public record BoardState (
 				.collect(Collectors.toSet());
 	}
 
-	private static final PieceType[] ATTACKING_PIECES = new PieceType[] {
+	private static final PieceType[] ATTACKING_PIECES = new PieceType[]{
 			PieceType.PAWN,
 			PieceType.KNIGHT,
 			PieceType.BISHOP,
@@ -494,7 +513,12 @@ public record BoardState (
 	}
 
 	public boolean isInCheck(Player player) {
+		return isInCheck.computeIfAbsent(player, this::isInCheck0);
+	}
+
+	private boolean isInCheck0(Player player) {
 		// find king
+		// todo: use bitboard faster
 		Piece king = new Piece(player, PieceType.KING);
 		var kingLocation = IntStream.range(0, 8)
 				.mapToObj(BoardCoordinate::allFromRank)
@@ -510,6 +534,10 @@ public record BoardState (
 	}
 
 	public Set<PlayerMove> getLegalMoves(Player currentPlayer) {
+		return new HashSet<>(legalMoves.computeIfAbsent(currentPlayer, this::getLegalMoves0));
+	}
+
+	private Set<PlayerMove> getLegalMoves0(Player currentPlayer) {
 		ArrayList<PlayerMove> legalMoves = new ArrayList<>();
 
 		for (int rank = 0; rank < 8; rank++) {
@@ -542,7 +570,8 @@ public record BoardState (
 		}
 
 		if (!isInCheck(currentPlayer) && canShortCastle(currentPlayer)) {
-			ShortCastleSearch: {
+			ShortCastleSearch:
+			{
 				// check if the squares are defended
 				Castle castle = Castle.shortCastle(currentPlayer);
 				for (BoardCoordinate square : castle.getClearanceSquares()) {
@@ -556,7 +585,8 @@ public record BoardState (
 		}
 
 		if (!isInCheck(currentPlayer) && canLongCastle(currentPlayer)) {
-			LongCastleSearch: {
+			LongCastleSearch:
+			{
 				// check if the squares are defended
 				Castle castle = Castle.longCastle(currentPlayer);
 				for (BoardCoordinate square : castle.getClearanceSquares()) {
@@ -579,11 +609,11 @@ public record BoardState (
 		}
 
 		return legalMoves.stream()
-					.filter(a -> !a.apply(this).isInCheck(currentPlayer))
+				.filter(a -> !a.apply(this).isInCheck(currentPlayer))
 				.collect(Collectors.toSet());
 	}
 
-	private record ParsedQueryParams (
+	private record ParsedQueryParams(
 			boolean shortCastle,
 			boolean longCastle,
 			PieceType piece,
@@ -606,6 +636,7 @@ public record BoardState (
 
 	/**
 	 * Converts algebraic notation into a PlayerMove
+	 *
 	 * @param text The algebraic notation of the move as a string (e.g. "dxc4")
 	 * @return A PlayerMove
 	 */
@@ -638,11 +669,12 @@ public record BoardState (
 		params.fileContext().ifPresent(file -> candidates.removeIf(candidate -> candidate.from().file() != file));
 
 		params.promotion().ifPresent(promotionPiece -> candidates.removeIf(candidate ->
-				!(candidate instanceof Promotion promotionMove) || promotionMove.newPiece().type() !=(promotionPiece)
+				!(candidate instanceof Promotion promotionMove) || promotionMove.newPiece().type() != (promotionPiece)
 		));
 
 		if (candidates.isEmpty()) throw new IllegalArgumentException("No moves found for " + text);
-		if (candidates.size() > 1) throw new IllegalArgumentException("Move not specific enough: " + candidates.size() + " candidates found for move " + text);
+		if (candidates.size() > 1)
+			throw new IllegalArgumentException("Move not specific enough: " + candidates.size() + " candidates found for move " + text);
 
 		return candidates.iterator().next();
 	}
@@ -658,7 +690,7 @@ public record BoardState (
 		if (!matcher.matches()) throw new IllegalArgumentException("Invalid algebraic notation: " + text);
 
 		boolean longCastle = matcher.group(3) != null;
-		boolean shortCastle =  !longCastle && matcher.group(2) != null;
+		boolean shortCastle = !longCastle && matcher.group(2) != null;
 
 		PieceType piece = switch (matcher.group(4)) {
 			case String s -> PieceType.fromChar(s.charAt(0));
@@ -706,4 +738,41 @@ public record BoardState (
 				isMate
 		);
 	}
+
+	public BoardStateInternal board() {
+		return board;
+	}
+
+	public Player currentTurn() {
+		return currentTurn;
+	}
+
+	public BoardCoordinate enPassantTarget() {
+		return enPassantTarget;
+	}
+
+	public int halfMoveClock() {
+		return halfMoveClock;
+	}
+
+	public int fullMoveNumber() {
+		return fullMoveNumber;
+	}
+
+	public boolean whiteShortCastle() {
+		return whiteShortCastle;
+	}
+
+	public boolean whiteLongCastle() {
+		return whiteLongCastle;
+	}
+
+	public boolean blackShortCastle() {
+		return blackShortCastle;
+	}
+
+	public boolean blackLongCastle() {
+		return blackLongCastle;
+	}
+
 }
