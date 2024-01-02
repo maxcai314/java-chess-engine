@@ -518,14 +518,13 @@ public class BoardState {
 
 	private boolean isInCheck0(Player player) {
 		// find king
-		// todo: use bitboard faster
-		Piece king = new Piece(player, PieceType.KING);
-		var kingLocation = IntStream.range(0, 8)
-				.mapToObj(BoardCoordinate::allFromRank)
-				.flatMap(Set::stream)
-				.filter(a -> king.equals(pieceAt(a)))
-				.findAny()
-				.orElseThrow();
+		int kingIndex = Long.numberOfTrailingZeros(board.state()[
+				switch (player) {
+					case WHITE -> 5;
+					case BLACK -> 11;
+				}]);
+		if (kingIndex == 64) throw new IllegalStateException("King not found");
+		BoardCoordinate kingLocation = new BoardCoordinate(kingIndex / 8, kingIndex % 8);
 		return isDefendedBy(player.opponent(), kingLocation);
 	}
 
