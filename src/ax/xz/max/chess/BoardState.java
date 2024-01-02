@@ -14,9 +14,10 @@ import java.util.stream.Stream;
  * This class is immutable.
  */
 public record BoardState (
-	List<List<Piece>> board,
+	BoardStateInternal board,
 	Player currentTurn,
 	BoardCoordinate enPassantTarget,
+
 	int halfMoveClock,
 	int fullMoveNumber, // number of moves both players have made; divide by two to use
 	boolean whiteShortCastle,
@@ -24,21 +25,12 @@ public record BoardState (
 	boolean blackShortCastle,
 	boolean blackLongCastle
 ) {
-	public BoardState {
-		board = board.stream().map(Collections::unmodifiableList).toList();
-		if (board.size() != 8)
-			throw new IllegalArgumentException("Board must be 8x8");
-		for (List<Piece> row : board)
-			if (row.size() != 8)
-				throw new IllegalArgumentException("Board must be 8x8");
-	}
-
 	public static BoardState defaultBoard() {
 		return fromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
 	}
 
 	public Piece pieceAt(BoardCoordinate coordinate) {
-		return board.get(coordinate.rank()).get(coordinate.file());
+		return board.get(coordinate.rank(), coordinate.file());
 	}
 
 	public boolean isEmpty(BoardCoordinate coordinate) {
@@ -46,8 +38,8 @@ public record BoardState (
 	}
 
 	public BoardState placePiece(Piece piece, BoardCoordinate coordinate) {
-		var newBoard = board.stream().<List<Piece>>map(ArrayList::new).toList();
-		newBoard.get(coordinate.rank()).set(coordinate.file(), piece);
+		var newBoard = board.copy();
+		newBoard.set(piece, coordinate.rank(), coordinate.file());
 		return new BoardState(
 			newBoard,
 			currentTurn,
@@ -179,7 +171,7 @@ public record BoardState (
 		builder.append("  _________________\n");
 		for (int i=7;i>=0;i--) { // flip board
 			builder.append(i + 1).append("| ");
-			for (Piece piece : board.get(i)) {
+			for (Piece piece : board.getRank(i)) {
 				builder.append(piece == null ? " " : piece.toChar()).append(" ");
 			}
 			builder.append("|\n");
@@ -191,7 +183,7 @@ public record BoardState (
 
 	public String toFEN() {
 		StringBuilder builder = new StringBuilder();
-		for (List<Piece> row : board.reversed()) {
+		for (var row : board.ranksReversed()) {
 			int spaces = 0;
 			for (Piece piece : row) {
 				if (piece == null) spaces++;
@@ -224,7 +216,7 @@ public record BoardState (
 		builder.append(" ");
 
 		switch (enPassantTarget) {
-			case null -> builder.append("-");
+			case null -> builder.append("- ");
 			case BoardCoordinate b -> builder.append(b).append(" ");
 		}
 
@@ -338,7 +330,17 @@ public record BoardState (
 			};
 		}
 
-		return new BoardState(board, currentPlayer, enPassantTarget, halfMoves, numMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
+		var realBoard = new BoardStateInternal();
+		for (int rank = 0; rank < board.size(); rank++) {
+			for (int file = 0; file < board.get(rank).size(); file++) {
+				Piece piece = board.get(rank).get(file);
+				if (piece != null) {
+					realBoard.set(piece, rank, file);
+				}
+			}
+		}
+
+		return new BoardState(realBoard, currentPlayer, enPassantTarget, halfMoves, numMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
 	}
 
 	private static final Set<BoardCoordinate> DIAGONAL_STEPS = Set.of(
@@ -510,8 +512,8 @@ public record BoardState (
 	public Set<PlayerMove> getLegalMoves(Player currentPlayer) {
 		ArrayList<PlayerMove> legalMoves = new ArrayList<>();
 
-		for (int rank = 0; rank < board.size(); rank++) {
-			for (int file = 0; file < board.get(rank).size(); file++) {
+		for (int rank = 0; rank < 8; rank++) {
+			for (int file = 0; file < 8; file++) {
 				BoardCoordinate position = new BoardCoordinate(rank, file);
 				Piece piece = pieceAt(position);
 
@@ -577,7 +579,7 @@ public record BoardState (
 		}
 
 		return legalMoves.stream()
-				.filter(a -> !a.apply(this).isInCheck(currentPlayer))
+					.filter(a -> !a.apply(this).isInCheck(currentPlayer))
 				.collect(Collectors.toSet());
 	}
 

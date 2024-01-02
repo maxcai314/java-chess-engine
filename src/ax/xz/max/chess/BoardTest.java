@@ -34,25 +34,25 @@ public class BoardTest {
 	@Test
 	public void testFromFEN() {
 		Board board = Board.fromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
-		assertEquals(board.toString(), DEFAULT_BOARD);
+		assertEquals(DEFAULT_BOARD, board.toString());
 
 		board = Board.fromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w");
-		assertEquals(board.toString(), DEFAULT_BOARD);
+		assertEquals(DEFAULT_BOARD, board.toString());
 
 		board = Board.fromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b");
-		assertEquals(board.toString(), DEFAULT_BOARD);
+		assertEquals(DEFAULT_BOARD, board.toString());
 
 		board = Board.fromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq");
-		assertEquals(board.toString(), DEFAULT_BOARD);
+		assertEquals(DEFAULT_BOARD, board.toString());
 
 		board = Board.fromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq");
-		assertEquals(board.toString(), DEFAULT_BOARD);
+		assertEquals(DEFAULT_BOARD, board.toString());
 
 		board = Board.fromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - -");
-		assertEquals(board.toString(), DEFAULT_BOARD);
+		assertEquals(DEFAULT_BOARD, board.toString());
 
 		board = Board.fromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b -");
-		assertEquals(board.toString(), DEFAULT_BOARD);
+		assertEquals(DEFAULT_BOARD, board.toString());
 
 		System.out.print(board);
 	}
