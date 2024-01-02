@@ -746,10 +746,6 @@ public class BoardState {
 		return currentTurn;
 	}
 
-	public BoardCoordinate enPassantTarget() {
-		return enPassantTarget;
-	}
-
 	public int halfMoveClock() {
 		return halfMoveClock;
 	}
@@ -757,21 +753,4 @@ public class BoardState {
 	public int fullMoveNumber() {
 		return fullMoveNumber;
 	}
-
-	public boolean whiteShortCastle() {
-		return whiteShortCastle;
-	}
-
-	public boolean whiteLongCastle() {
-		return whiteLongCastle;
-	}
-
-	public boolean blackShortCastle() {
-		return blackShortCastle;
-	}
-
-	public boolean blackLongCastle() {
-		return blackLongCastle;
-	}
-
 }
