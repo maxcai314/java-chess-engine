@@ -1,4 +1,4 @@
-package ax.xz.max.chess.engine;
+package ax.xz.max.chess.engine.choice;
 
 import ax.xz.max.chess.Board;
 import ax.xz.max.chess.moves.PlayerMove;

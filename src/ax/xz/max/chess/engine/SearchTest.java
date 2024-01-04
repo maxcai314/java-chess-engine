@@ -2,6 +2,9 @@ package ax.xz.max.chess.engine;
 
 import ax.xz.max.chess.Board;
 import ax.xz.max.chess.GameState;
+import ax.xz.max.chess.engine.choice.FasterAlphaBetaSearch;
+import ax.xz.max.chess.engine.choice.MovePicker;
+import ax.xz.max.chess.engine.evaluators.PieceMapEvaluator;
 import ax.xz.max.chess.moves.PlayerMove;
 
 import java.time.Duration;
@@ -16,7 +19,7 @@ public class SearchTest {
 
 		Board board = new Board();
 
-		var evaluator = new ImprovedShannonEvaluator();
+		var evaluator = new PieceMapEvaluator();
 		var whiteAlgorithm = new FasterAlphaBetaSearch(evaluator, 4);
 		var blackAlgorithm = new FasterAlphaBetaSearch(evaluator, 4);
 

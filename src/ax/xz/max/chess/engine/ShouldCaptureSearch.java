@@ -1,6 +1,9 @@
 package ax.xz.max.chess.engine;
 
 import ax.xz.max.chess.Board;
+import ax.xz.max.chess.engine.choice.AlphaBetaSearch;
+import ax.xz.max.chess.engine.choice.MovePicker;
+import ax.xz.max.chess.engine.evaluators.ShannonEvaluator;
 import ax.xz.max.chess.moves.PlayerMove;
 
 public class ShouldCaptureSearch implements MovePicker {
