@@ -119,21 +119,20 @@ public class ImprovedShannonEvaluator implements BoardEvaluator {
 	}
 
 	private static double mobilityReward(Board board) {
-		return 0.1 * (
-				board.getLegalMoves(Player.WHITE).stream().map(ImprovedShannonEvaluator::moveReward).reduce(0.0, Double::sum)
-						- board.getLegalMoves(Player.BLACK).stream().map(ImprovedShannonEvaluator::moveReward).reduce(0.0, Double::sum));
+		return board.getLegalMoves(Player.WHITE).stream().map(ImprovedShannonEvaluator::moveReward).reduce(0.0, Double::sum)
+				- board.getLegalMoves(Player.BLACK).stream().map(ImprovedShannonEvaluator::moveReward).reduce(0.0, Double::sum);
 	}
 
 	private static double moveReward(PlayerMove move) {
 		double total = 0.1;
 		if (move instanceof Castle || move instanceof Promotion)
 			total += 0.1;
-		switch (move.piece().type()) {
-			case PAWN, KING -> total += 0;
-			case KNIGHT, BISHOP -> total += 0.2;
-			case ROOK -> total += 0.2;
-			case QUEEN -> total += 0.02;
-		}
+		total += switch (move.piece().type()) {
+			case PAWN, KING -> 0;
+			case KNIGHT, BISHOP -> 0.2;
+			case ROOK -> 0.3;
+			case QUEEN -> 0.02;
+		};
 		return total;
 	}
 
