@@ -75,7 +75,7 @@ public record AlphaBetaSearch(
 			for (PlayerMove move : orderedLegalMoves()) {
 				var moveRecord = board.makeMove(move);
 				try {
-					double score = alphaBetaMin(alpha, beta, depth);
+					double score = alphaBetaMin(alpha, beta, depth - 1);
 					if (score > alpha) {
 						alpha = score; // alpha acts like max
 						bestMove = move;
@@ -94,7 +94,7 @@ public record AlphaBetaSearch(
 			for (PlayerMove move : orderedLegalMoves()) {
 				var moveRecord = board.makeMove(move);
 				try {
-					double score = alphaBetaMax(alpha, beta, depth);
+					double score = alphaBetaMax(alpha, beta, depth - 1);
 					if (score < beta) {
 						beta = score; // beta acts like min
 						bestMove = move;

@@ -4,19 +4,25 @@ import ax.xz.max.chess.Board;
 import ax.xz.max.chess.GameState;
 import ax.xz.max.chess.moves.PlayerMove;
 
+import java.time.Duration;
+import java.time.Instant;
+
 public class SearchTest {
 	public static void main(String[] args) {
 //		Board board = Board.fromFEN("5Kbk/6pp/6P1/8/8/8/8/7R w - - 0 1");
 //		System.out.println("Puzzle- mate in 2:");
 
+		Instant start = Instant.now();
+
 		Board board = new Board();
 
 		var evaluator = new ImprovedShannonEvaluator();
-		var whiteAlgorithm = new IterativeDeepeningSearch(evaluator, 2);
-		var blackAlgorithm = new IterativeDeepeningSearch(evaluator, 1);
+		var whiteAlgorithm = new FasterAlphaBetaSearch(evaluator, 4);
+		var blackAlgorithm = new FasterAlphaBetaSearch(evaluator, 4);
 
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			System.out.println("Shutting down...\n");
+			System.out.println("Shutting down...");
+			System.out.println("Made " + board.getNumMoves() + " moves in " + Duration.between(start, Instant.now()).toSeconds() + " seconds\n");
 			System.out.println(board.toPGN());
 		}));
 
@@ -26,7 +32,7 @@ public class SearchTest {
 	private static void finishGame(Board board, MovePicker white, MovePicker black) {
 		while (board.gameState() == GameState.UNFINISHED) {
 			System.out.println(board);
-			System.out.printf("%d. %s to move%n", board.getNumMoves() / 2 + 1, board.currentTurn());
+			System.out.printf("%d. %s to move%n", board.boardState().fullMoveNumber() / 2 + 1, board.currentTurn());
 
 			PlayerMove move = switch (board.currentTurn()) {
 				case WHITE -> white.chooseNextMove(board);
