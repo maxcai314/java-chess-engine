@@ -3,6 +3,7 @@ package ax.xz.max.chess.engine;
 import ax.xz.max.chess.Board;
 import ax.xz.max.chess.GameState;
 import ax.xz.max.chess.engine.choice.FasterAlphaBetaSearch;
+import ax.xz.max.chess.engine.choice.HumanInput;
 import ax.xz.max.chess.engine.choice.MovePicker;
 import ax.xz.max.chess.engine.evaluators.PieceMapEvaluator;
 import ax.xz.max.chess.moves.PlayerMove;
