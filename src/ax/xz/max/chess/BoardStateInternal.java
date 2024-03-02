@@ -27,6 +27,10 @@ public record BoardStateInternal(long[] state) {
         return (l & (1L << (rank * 8 + file))) != 0;
     }
 
+    public int numPieces() {
+        return (int) Arrays.stream(state).map(Long::bitCount).sum();
+    }
+
     public Piece get(int rank, int file) {
         for (int i = 0; i < PIECES.length; i++) {
             if (bitAt(state[i], rank, file)) {

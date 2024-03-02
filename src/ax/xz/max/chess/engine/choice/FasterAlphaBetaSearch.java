@@ -62,6 +62,11 @@ public record FasterAlphaBetaSearch(
 	}
 
 	public PlayerMove findMax(Board board) {
+//		int fakeDepth = depth;
+//		if (board.boardState().numPieces() < 10) {
+//			fakeDepth += 2;
+//		}
+//		int depth = fakeDepth;
 		Map<PlayerMove, Double> moveScores = new HashMap<>();
 		try (var scope = new StructuredTaskScope<>("Find Max", Thread::new)) { // platform threads
 			for (PlayerMove move : orderedLegalMoves(board)) {
@@ -89,6 +94,11 @@ public record FasterAlphaBetaSearch(
 	}
 
 	public PlayerMove findMin(Board board) {
+//		int fakeDepth = depth;
+//		if (board.boardState().numPieces() < 10) {
+//			fakeDepth += 2;
+//		}
+//		int depth = fakeDepth;
 		Map<PlayerMove, Double> moveScores = new HashMap<>();
 		try (var scope = new StructuredTaskScope<>("Find Min", Thread::new)) { // platform threads
 			for (PlayerMove move : orderedLegalMoves(board)) {

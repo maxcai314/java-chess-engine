@@ -6,7 +6,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -408,7 +407,7 @@ public class BoardState {
 	 * Gets the hypothetical moves a piece could make if it were of the input type and at the input position,
 	 * regardless of legality
 	 */
-	private Set<PlayerMove> attacksUsingPiece(Piece piece, BoardCoordinate position) {
+	private Stream<PlayerMove> attacksUsingPiece(Piece piece, BoardCoordinate position) {
 		return switch (piece.type()) {
 			case PAWN -> Stream.of(1, -1)
 					.map(a -> position.step(piece.owner().pawnDirection(), a))
@@ -419,22 +418,19 @@ public class BoardState {
 									Stream.of(Promotion.allPromotions(piece, position, a)) :
 									Stream.of(new RegularMove(piece, position, a))
 					)
-					.map(PlayerMove.class::cast)
-					.collect(Collectors.toSet());
+					.map(PlayerMove.class::cast);
 
 			case KNIGHT -> KNIGHT_STEPS.stream()
 					.map(position::step)
 					.filter(BoardCoordinate::isValid)
 					.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
-					.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-					.collect(Collectors.toSet());
+					.map(a -> (PlayerMove) new RegularMove(piece, position, a));
 
 			case KING -> ALL_STEPS.stream()
 					.map(position::step)
 					.filter(BoardCoordinate::isValid)
 					.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
-					.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-					.collect(Collectors.toSet());
+					.map(a -> (PlayerMove) new RegularMove(piece, position, a));
 
 			case BISHOP -> DIAGONAL_STEPS.stream()
 					.flatMap(step -> {
@@ -446,8 +442,7 @@ public class BoardState {
 						return candidates.stream();
 					})
 					.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
-					.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-					.collect(Collectors.toSet());
+					.map(a -> (PlayerMove) new RegularMove(piece, position, a));
 
 			case ROOK -> ORTHOGONAL_STEPS.stream()
 					.flatMap(step -> {
@@ -459,8 +454,7 @@ public class BoardState {
 						return candidates.stream();
 					})
 					.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
-					.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-					.collect(Collectors.toSet());
+					.map(a -> (PlayerMove) new RegularMove(piece, position, a));
 
 			case QUEEN -> ALL_STEPS.stream()
 					.flatMap(step -> {
@@ -472,8 +466,7 @@ public class BoardState {
 						return candidates.stream();
 					})
 					.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
-					.map(a -> (PlayerMove) new RegularMove(piece, position, a))
-					.collect(Collectors.toSet());
+					.map(a -> (PlayerMove) new RegularMove(piece, position, a));
 		};
 	}
 
@@ -481,14 +474,12 @@ public class BoardState {
 	 * Gets the hypothetical moves a piece could make from another square to attack the input position,
 	 * regardless of legality
 	 */
-	private Set<PlayerMove> findAttacksOnCoordinate(Piece piece, BoardCoordinate position) {
+	private Stream<PlayerMove> findAttacksOnCoordinate(Piece piece, BoardCoordinate position) {
 		Piece enemy = new Piece(piece.owner().opponent(), piece.type());
 		return attacksUsingPiece(enemy, position)
-				.stream()
 				.filter(a -> a instanceof RegularMove) // promotions can't become attacks
 				.filter(a -> piece.equals(pieceAt(a.to())))
-				.map(a -> (PlayerMove) new RegularMove(piece, a.to(), a.from())) // reverse move
-				.collect(Collectors.toSet());
+				.map(a -> new RegularMove(piece, a.to(), a.from())); // reverse move
 	}
 
 	private static final PieceType[] ATTACKING_PIECES = new PieceType[]{
@@ -508,7 +499,7 @@ public class BoardState {
 		// strategy: replace the position square with a piece of any type, and see if it attacks an opponent piece of the same type
 		Player player = opponent.opponent();
 		return Stream.of(ATTACKING_PIECES)
-				.flatMap(pieceType -> attacksUsingPiece(new Piece(player, pieceType), position).stream())
+				.flatMap(pieceType -> attacksUsingPiece(new Piece(player, pieceType), position))
 				.anyMatch(move -> new Piece(opponent, move.piece().type()).equals(pieceAt(move.to())));
 	}
 
@@ -559,7 +550,7 @@ public class BoardState {
 				if (piece == null || piece.owner() != currentPlayer)
 					continue;
 
-				legalMoves.addAll(attacksUsingPiece(piece, position));
+				attacksUsingPiece(piece, position).forEach(legalMoves::add);
 
 				// pawn pushes
 				if (piece.type() == PieceType.PAWN) {
@@ -591,7 +582,6 @@ public class BoardState {
 		// en passant
 		if (enPassantTarget != null) {
 			findAttacksOnCoordinate(new Piece(currentPlayer, PieceType.PAWN), enPassantTarget)
-					.stream()
 					.map(PlayerMove::from)
 					.map(from -> EnPassant.enPassant(currentPlayer, from, enPassantTarget))
 					.forEach(legalMoves::add);
@@ -742,5 +732,9 @@ public class BoardState {
 
 	public int fullMoveNumber() {
 		return fullMoveNumber;
+	}
+
+	public int numPieces() {
+		return board.numPieces();
 	}
 }
