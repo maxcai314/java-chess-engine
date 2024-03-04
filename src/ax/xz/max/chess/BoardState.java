@@ -562,7 +562,7 @@ public class BoardState {
 		return legalMoves;
 	}
 
-	private static final int MAX_CACHE_SIZE = 500_000;
+	private static final int MAX_CACHE_SIZE = 1_000_000;
 	private static class TranspositionTable extends LinkedHashMap<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> {
 		@Override
 		protected boolean removeEldestEntry(Map.Entry<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> eldest) {
