@@ -23,8 +23,6 @@ public class BoardState {
 	private final boolean whiteLongCastle;
 	private final boolean blackShortCastle;
 	private final boolean blackLongCastle;
-
-	private final EnumMap<Player, Set<PlayerMove>> legalMoves = new EnumMap<>(Player.class);
 	private final EnumMap<Player, Boolean> isInCheck = new EnumMap<>(Player.class);
 
 	public BoardState(
@@ -531,11 +529,17 @@ public class BoardState {
 		return true;
 	}
 
+	private final EnumMap<Player, Set<PlayerMove>> legalMoves = new EnumMap<>(Player.class);
+
 	public Set<PlayerMove> getLegalMoves() {
 		return getLegalMoves(currentTurn);
 	}
 
 	public Set<PlayerMove> getLegalMoves(Player currentPlayer) {
+		return new HashSet<>(legalMoves.computeIfAbsent(currentPlayer, this::getLegalMoves0));
+	}
+
+	private Set<PlayerMove> getLegalMoves0(Player currentPlayer) {
 		Set<PlayerMove> legalMoves = unprocessedLegalMoves(currentPlayer);
 		ArrayList<PlayerMove> additionalMoves = new ArrayList<>();
 
