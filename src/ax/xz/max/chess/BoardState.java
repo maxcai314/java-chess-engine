@@ -562,14 +562,17 @@ public class BoardState {
 		return legalMoves;
 	}
 
-	private static final int MAX_CACHE_SIZE = 65536;
+	private static final int MAX_CACHE_SIZE = 500_000;
 	private static class TranspositionTable extends LinkedHashMap<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> {
 		@Override
 		protected boolean removeEldestEntry(Map.Entry<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> eldest) {
+			if (size() > MAX_CACHE_SIZE) {
+				if (Math.random() > 0.99) System.out.println("Cache full!");
+			}
 			return size() > MAX_CACHE_SIZE;
 		}
 	}
-	private static final TranspositionTable transpositionTable = new TranspositionTable();
+	private static final Map<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> transpositionTable = Collections.synchronizedMap(new TranspositionTable());
 
 	private Set<PlayerMove> unprocessedLegalMoves(Player currentPlayer) {
 		return new HashSet<>(
