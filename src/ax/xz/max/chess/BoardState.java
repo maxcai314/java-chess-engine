@@ -566,9 +566,6 @@ public class BoardState {
 	private static class TranspositionTable extends LinkedHashMap<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> {
 		@Override
 		protected boolean removeEldestEntry(Map.Entry<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> eldest) {
-			if (size() > MAX_CACHE_SIZE) {
-				if (Math.random() > 0.99) System.out.println("Cache full!");
-			}
 			return size() > MAX_CACHE_SIZE;
 		}
 	}
