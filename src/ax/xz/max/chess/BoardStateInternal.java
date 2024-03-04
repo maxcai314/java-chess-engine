@@ -91,6 +91,23 @@ public record BoardStateInternal(long[] state) {
         };
     }
 
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(state);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        BoardStateInternal other = (BoardStateInternal) obj;
+        return Arrays.equals(state, other.state);
+    }
+
     public BoardStateInternal copy() {
         return new BoardStateInternal(Arrays.copyOf(state, state.length));
     }

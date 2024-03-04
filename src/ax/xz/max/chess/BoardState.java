@@ -519,14 +519,6 @@ public class BoardState {
 		return isDefendedBy(player.opponent(), kingLocation);
 	}
 
-	public Set<PlayerMove> getLegalMoves() {
-		return getLegalMoves(currentTurn);
-	}
-
-	public Set<PlayerMove> getLegalMoves(Player currentPlayer) {
-		return new HashSet<>(legalMoves.computeIfAbsent(currentPlayer, this::getLegalMoves0));
-	}
-
 	private boolean canDoCastle(Castle castle) {
 		for (BoardCoordinate square : castle.getClearanceSquares()) {
 			if (!isEmpty(square))
@@ -539,7 +531,47 @@ public class BoardState {
 		return true;
 	}
 
-	private Set<PlayerMove> getLegalMoves0(Player currentPlayer) {
+	public Set<PlayerMove> getLegalMoves() {
+		return getLegalMoves(currentTurn);
+	}
+
+	public Set<PlayerMove> getLegalMoves(Player currentPlayer) {
+		Set<PlayerMove> legalMoves = unprocessedLegalMoves(currentPlayer);
+		ArrayList<PlayerMove> additionalMoves = new ArrayList<>();
+
+		Castle shortCastle = Castle.shortCastle(currentPlayer);
+		if (!isInCheck(currentPlayer) && canShortCastle(currentPlayer) && canDoCastle(shortCastle))
+			additionalMoves.add(shortCastle);
+
+		Castle longCastle = Castle.longCastle(currentPlayer);
+		if (!isInCheck(currentPlayer) && canLongCastle(currentPlayer) && canDoCastle(longCastle))
+			additionalMoves.add(longCastle);
+
+		// en passant
+		if (enPassantTarget != null) {
+			findAttacksOnCoordinate(new Piece(currentPlayer, PieceType.PAWN), enPassantTarget)
+					.map(PlayerMove::from)
+					.map(from -> EnPassant.enPassant(currentPlayer, from, enPassantTarget))
+					.forEach(additionalMoves::add);
+		}
+
+		additionalMoves.stream()
+				.filter(a -> !a.apply(this).isInCheck(currentPlayer))
+				.forEach(legalMoves::add);
+
+		return legalMoves;
+	}
+
+	private static final Map<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> transpositionTable = new LinkedHashMap<>();
+
+	private Set<PlayerMove> unprocessedLegalMoves(Player currentPlayer) {
+		return new HashSet<>(
+				transpositionTable.computeIfAbsent(board, a -> new EnumMap<>(Player.class))
+						.computeIfAbsent(currentPlayer, this::unprocessedLegalMoves0)
+		);
+	}
+
+	private Set<PlayerMove> unprocessedLegalMoves0(Player currentPlayer) {
 		ArrayList<PlayerMove> legalMoves = new ArrayList<>();
 
 		for (int rank = 0; rank < 8; rank++) {
@@ -569,22 +601,6 @@ public class BoardState {
 					}
 				}
 			}
-		}
-
-		Castle shortCastle = Castle.shortCastle(currentPlayer);
-		if (!isInCheck(currentPlayer) && canShortCastle(currentPlayer) && canDoCastle(shortCastle))
-				legalMoves.add(shortCastle);
-
-		Castle longCastle = Castle.longCastle(currentPlayer);
-		if (!isInCheck(currentPlayer) && canLongCastle(currentPlayer) && canDoCastle(longCastle))
-				legalMoves.add(longCastle);
-
-		// en passant
-		if (enPassantTarget != null) {
-			findAttacksOnCoordinate(new Piece(currentPlayer, PieceType.PAWN), enPassantTarget)
-					.map(PlayerMove::from)
-					.map(from -> EnPassant.enPassant(currentPlayer, from, enPassantTarget))
-					.forEach(legalMoves::add);
 		}
 
 		return legalMoves.stream()
