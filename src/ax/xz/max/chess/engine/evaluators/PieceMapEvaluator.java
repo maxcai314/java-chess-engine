@@ -14,23 +14,17 @@ import java.util.stream.IntStream;
 public class PieceMapEvaluator implements BoardEvaluator {
 	@Override
 	public double evaluate(Board board) {
-		switch (board.gameState()) {
-			case WHITE_WON -> {
-				return 1000 - board.getNumMoves(); // prioritize tempo: find fastest mate
-			}
-			case BLACK_WON -> {
-				return -1000 + board.getNumMoves();
-			}
-			case DRAW -> {
-				return 0;
-			}
-		}
+		return switch (board.gameState()) {
+			case WHITE_WON -> 10000 - board.getNumMoves(); // prioritize tempo: find fastest mate
+			case BLACK_WON -> -10000 + board.getNumMoves();
+			case DRAW -> 0;
+			default -> materialReward(board)
+					+ mobilityReward(board)
+					- doubledPawnPenalty(board)
+					- blockedPawnPenalty(board)
+					- isolatedPawnPenalty(board);
+		};
 
-		return materialReward(board)
-				+ mobilityReward(board)
-				- doubledPawnPenalty(board)
-				- blockedPawnPenalty(board)
-				- isolatedPawnPenalty(board);
 	}
 
 	/** should be added to the evaluation */
@@ -43,126 +37,88 @@ public class PieceMapEvaluator implements BoardEvaluator {
 				.sum();
 	}
 
-	private static final List<Double> whitePawnValue = List.of(
-			0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-			1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-			1.2, 1.2, 1.3, 1.4, 1.4, 1.2, 1.2, 1.2,
-			1.3, 1.4, 1.5, 1.7, 1.7, 1.4, 1.4, 1.3,
-			1.4, 1.5, 1.6, 1.7, 1.7, 1.5, 1.5, 1.4,
-			1.5, 1.6, 1.7, 1.8, 1.8, 1.6, 1.6, 1.5,
-			1.9, 2.0, 2.1, 2.2, 2.2, 2.1, 2.0, 1.9,
-			0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	private static final List<List<Double>> whitePawnValue = List.of(
+			List.of(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+			List.of(1.0, 1.0, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0),
+			List.of(1.2, 1.2, 1.3, 1.3, 1.3, 1.2, 1.2, 1.2),
+			List.of(1.3, 1.4, 1.4, 1.4, 1.4, 1.4, 1.4, 1.3),
+			List.of(1.4, 1.5, 1.6, 1.7, 1.7, 1.5, 1.5, 1.4),
+			List.of(1.5, 1.6, 1.7, 1.8, 1.8, 1.6, 1.6, 1.5),
+			List.of(1.9, 2.0, 2.1, 2.2, 2.2, 2.1, 2.0, 1.9),
+			List.of(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 	);
 
-	private static final List<Double> blackPawnValue = List.of(
-			0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-			1.9, 2.0, 2.1, 2.2, 2.2, 2.1, 2.0, 1.9,
-			1.5, 1.6, 1.7, 1.8, 1.8, 1.6, 1.6, 1.5,
-			1.4, 1.5, 1.6, 1.7, 1.7, 1.5, 1.5, 1.4,
-			1.3, 1.4, 1.5, 1.7, 1.7, 1.4, 1.4, 1.3,
-			1.2, 1.2, 1.3, 1.4, 1.4, 1.2, 1.2, 1.2,
-			1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-			0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	private static final List<List<Double>> blackPawnValue = whitePawnValue.reversed();
+
+	private static final List<List<Double>> whiteKnightValue = List.of(
+			List.of(1.5, 2.1, 2.5, 2.5, 2.5, 2.5, 2.1, 1.5),
+			List.of(1.8, 2.5, 2.5, 3.0, 3.0, 2.5, 2.5, 1.8),
+			List.of(2.5, 3.0, 3.2, 3.0, 3.0, 3.2, 3.0, 2.5),
+			List.of(2.5, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.5),
+			List.of(2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.8),
+			List.of(2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.8),
+			List.of(2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.8),
+			List.of(2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8)
 	);
 
-	private static final List<Double> whiteKnightValue = List.of(
-			1.5, 2.8, 2.2, 2.2, 2.2, 2.2, 2.8, 1.5,
-			1.8, 2.5, 2.5, 3.0, 3.0, 2.5, 2.5, 1.8,
-			2.5, 2.8, 2.8, 3.0, 3.0, 3.0, 2.8, 3.0,
-			2.5, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.5,
-			2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.8,
-			2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.8,
-			2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.8,
-			2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8
+	private static final List<List<Double>> blackKnightValue = whiteKnightValue.reversed();
+
+	private static final List<List<Double>> whiteBishopValue = List.of(
+			List.of(2.0, 1.0, 2.1, 2.0, 2.0, 2.1, 1.0, 2.0),
+			List.of(2.5, 3.0, 2.5, 2.9, 2.9, 2.5, 3.0, 2.5),
+			List.of(2.5, 2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 2.5),
+			List.of(2.8, 2.5, 3.6, 3.0, 3.0, 3.6, 2.5, 2.8),
+			List.of(3.0, 3.5, 3.0, 3.0, 3.0, 3.0, 3.5, 3.0),
+			List.of(3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0),
+			List.of(3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0),
+			List.of(2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8)
 	);
 
-	private static final List<Double> blackKnightValue = List.of(
-			2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8,
-			2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.8,
-			2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.8,
-			2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.8,
-			2.5, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.5,
-			2.5, 2.8, 2.8, 3.0, 3.0, 3.0, 2.8, 3.0,
-			1.8, 2.5, 2.5, 3.0, 3.0, 2.5, 2.5, 1.8,
-			1.5, 2.8, 2.2, 2.2, 2.2, 2.2, 2.8, 1.5
+	private static final List<List<Double>> blackBishopValue = whiteBishopValue.reversed();
+
+	private static final List<List<Double>> whiteRookValue = List.of(
+			List.of(4.1, 4.5, 4.5, 5.0, 5.0, 5.0, 4.5, 4.1),
+			List.of(4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5),
+			List.of(5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0),
+			List.of(5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0),
+			List.of(5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0),
+			List.of(5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0),
+			List.of(5.1, 5.1, 5.1, 5.1, 5.1, 5.1, 5.1, 5.1),
+			List.of(5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0)
 	);
 
-	private static final List<Double> whiteBishopValue = List.of(
-			2.0, 2.0, 2.8, 2.0, 2.0, 2.8, 2.0, 2.0,
-			2.5, 3.0, 2.5, 2.9, 2.9, 2.5, 3.0, 2.5,
-			2.5, 2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 2.5,
-			2.8, 2.5, 3.5, 3.0, 3.0, 3.5, 2.5, 2.8,
-			3.0, 3.5, 3.0, 3.0, 3.0, 3.0, 3.5, 3.0,
-			3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0,
-			3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0,
-			2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8
+	private static final List<List<Double>> blackRookValue = whiteRookValue.reversed();
+
+	private static final List<List<Double>> whiteQueenValue = List.of(
+			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0),
+			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0),
+			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0),
+			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0),
+			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0),
+			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0),
+			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0),
+			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0)
 	);
 
-	private static final List<Double> blackBishopValue = List.of(
-			2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8,
-			3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0,
-			3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0,
-			3.0, 3.5, 3.0, 3.0, 3.0, 3.0, 3.5, 3.0,
-			2.8, 2.5, 3.5, 3.0, 3.0, 3.5, 2.5, 2.8,
-			2.5, 2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 2.5,
-			2.5, 3.0, 2.5, 2.9, 2.9, 2.5, 3.0, 2.5,
-			2.0, 2.0, 2.8, 2.0, 2.0, 2.8, 2.0, 2.0
-	);
-
-	private static final List<Double> whiteRookValue = List.of(
-			4.5, 4.5, 4.5, 5.0, 5.0, 5.0, 4.5, 4.5,
-			4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5,
-			5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0,
-			5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0,
-			5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0,
-			5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0,
-			5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0,
-			5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0
-	);
-
-	private static final List<Double> blackRookValue = List.of(
-			5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0,
-			5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0,
-			5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0,
-			5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0,
-			5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0,
-			5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0,
-			4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5,
-			4.5, 4.5, 4.5, 5.0, 5.0, 5.0, 4.5, 4.5
-	);
-
-	private static final List<Double> whiteQueenValue = List.of(
-			9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0,
-			9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0,
-			9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0,
-			9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0,
-			9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0,
-			9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0,
-			9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0,
-			9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0
-	);
-
-	private static final List<Double> blackQueenValue = whiteQueenValue;
+	private static final List<List<Double>> blackQueenValue = whiteQueenValue.reversed();
 
 	private static double valueOf(BoardCoordinate coordinate, Piece piece) {
-		int index = coordinate.rank() * 8 + coordinate.file();
-
 		return switch (piece.owner()) {
 			case WHITE -> switch (piece.type()) {
-				case PAWN -> whitePawnValue.get(index);
-				case KNIGHT -> whiteKnightValue.get(index);
-				case BISHOP -> whiteBishopValue.get(index);
-				case ROOK -> whiteRookValue.get(index);
-				case QUEEN -> whiteQueenValue.get(index);
+				case PAWN -> whitePawnValue.get(coordinate.rank()).get(coordinate.file());
+				case KNIGHT -> whiteKnightValue.get(coordinate.rank()).get(coordinate.file());
+				case BISHOP -> whiteBishopValue.get(coordinate.rank()).get(coordinate.file());
+				case ROOK -> whiteRookValue.get(coordinate.rank()).get(coordinate.file());
+				case QUEEN -> whiteQueenValue.get(coordinate.rank()).get(coordinate.file());
 				case KING -> 0; // todo: make map
 			};
 
 			case BLACK -> -1 * switch (piece.type()) {
-				case PAWN -> blackPawnValue.get(index);
-				case KNIGHT -> blackKnightValue.get(index);
-				case BISHOP -> blackBishopValue.get(index);
-				case ROOK -> blackRookValue.get(index);
-				case QUEEN -> blackQueenValue.get(index);
+				case PAWN -> blackPawnValue.get(coordinate.rank()).get(coordinate.file());
+				case KNIGHT -> blackKnightValue.get(coordinate.rank()).get(coordinate.file());
+				case BISHOP -> blackBishopValue.get(coordinate.rank()).get(coordinate.file());
+				case ROOK -> blackRookValue.get(coordinate.rank()).get(coordinate.file());
+				case QUEEN -> blackQueenValue.get(coordinate.rank()).get(coordinate.file());
 				case KING -> 0;
 			};
 		};
@@ -215,7 +171,7 @@ public class PieceMapEvaluator implements BoardEvaluator {
 	}
 
 	private static double isolatedPawnPenalty(Board board, Player player) {
-		return 0.05 * IntStream.range(0, 8)
+		return 0.1 * IntStream.range(0, 8)
 				.map(file -> {
 					if (numPawnsOnFile(board, player, file - 1) == 0) return 0;
 					if (numPawnsOnFile(board, player, file + 1) == 0) return 0;
@@ -230,13 +186,16 @@ public class PieceMapEvaluator implements BoardEvaluator {
 	}
 
 	private static double moveReward(PlayerMove move) {
-		double total = 0.05;
-		if (move instanceof Castle || move instanceof Promotion)
-			total += 0.05;
+		double total = 0.01;
+		total += switch(move) {
+			case Castle __ -> 0.02;
+			case Promotion __ -> 0.01;
+			default -> 0;
+		};
 		total += switch (move.piece().type()) {
-			case KNIGHT, BISHOP -> 0.1;
-			case ROOK -> 0.15;
-			case QUEEN -> 0.01;
+			case KNIGHT, BISHOP -> 0.03;
+			case ROOK -> 0.02;
+			case QUEEN -> 0.001;
 			default -> 0;
 		};
 		return total;
