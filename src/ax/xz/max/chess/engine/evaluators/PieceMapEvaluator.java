@@ -6,10 +6,6 @@ import ax.xz.max.chess.moves.PlayerMove;
 import ax.xz.max.chess.moves.Promotion;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Predicate;
-import java.util.stream.IntStream;
 
 public class PieceMapEvaluator implements BoardEvaluator {
 	@Override
@@ -29,12 +25,16 @@ public class PieceMapEvaluator implements BoardEvaluator {
 
 	/** should be added to the evaluation */
 	private static double materialReward(Board board) {
-		return IntStream.range(0, 8)
-				.mapToObj(BoardCoordinate::allFromRank)
-				.flatMap(Set::stream)
-				.filter(coordinate -> board.pieceAt(coordinate) != null)
-				.mapToDouble(coordinate -> valueOf(coordinate, board.pieceAt(coordinate)))
-				.sum();
+		double total = 0;
+		for (var player : Player.values()) {
+			for (var type : PieceType.values()) {
+				var piece = new Piece(player, type);
+				for (var position : board.boardState().board().allOf(piece)) {
+					total += valueOf(position, piece);
+				}
+			}
+		}
+		return total;
 	}
 
 	private static final List<List<Double>> whitePawnValue = List.of(
@@ -124,12 +124,13 @@ public class PieceMapEvaluator implements BoardEvaluator {
 		};
 	}
 
-	private static int numPawnsOnFile(Board board, Player player, int file) {
+	private static int[] numPawnsPerFile(Board board, Player player) {
 		Piece pawn = new Piece(player, PieceType.PAWN);
-		var tiles = BoardCoordinate.allFromFile(file);
-		tiles.removeIf(Predicate.not(BoardCoordinate::isValid));
-		tiles.removeIf(coordinate -> board.pieceAt(coordinate) != pawn);
-		return tiles.size();
+		var result = new int[8];
+		for (BoardCoordinate position : board.boardState().board().allOf(pawn)) {
+			result[position.file()]++;
+		}
+		return result;
 	}
 
 	/** should be subtracted from the evaluation */
@@ -138,11 +139,12 @@ public class PieceMapEvaluator implements BoardEvaluator {
 	}
 
 	private static double doubledPawnPenalty(Board board, Player player) {
-		return 0.05 * IntStream.range(0, 8)
-				.map(file -> numPawnsOnFile(board, player, file))
-				.map(numPawns -> numPawns - 1)
-				.map(doubledPawns -> Math.max(0, doubledPawns))
-				.sum();
+		var numPawnsPerFile = numPawnsPerFile(board, player);
+		int count = 0;
+		for (int numPawns : numPawnsPerFile) {
+			if (numPawns > 1) count += numPawns - 1;
+		}
+		return 0.5 * count;
 	}
 
 	/** should be subtracted from the evaluation */
@@ -152,17 +154,12 @@ public class PieceMapEvaluator implements BoardEvaluator {
 
 	private static double blockedPawnPenalty(Board board, Player player) {
 		Piece pawn = new Piece(player, PieceType.PAWN);
-		return 0.05 * IntStream.range(0, 8)
-				.map(file -> {
-					var tiles = BoardCoordinate.allFromFile(file);
-					tiles.removeIf(coordinate -> board.pieceAt(coordinate) != pawn);
-					tiles.removeIf(coordinate -> {
-						var forward = coordinate.step(player.pawnDirection(), 0);
-						return forward.isValid() && board.pieceAt(forward) != null;
-					});
-					return tiles.size();
-				})
-				.sum();
+		int count = 0;
+		for (BoardCoordinate position : board.boardState().board().allOf(pawn)) {
+			var step = position.step(player.pawnDirection(), 0);
+			if (step.isValid() && !board.boardState().isEmpty(step)) count++;
+		}
+		return 0.5 * count;
 	}
 
 	/** should be subtracted from the evaluation */
@@ -171,13 +168,17 @@ public class PieceMapEvaluator implements BoardEvaluator {
 	}
 
 	private static double isolatedPawnPenalty(Board board, Player player) {
-		return 0.1 * IntStream.range(0, 8)
-				.map(file -> {
-					if (numPawnsOnFile(board, player, file - 1) == 0) return 0;
-					if (numPawnsOnFile(board, player, file + 1) == 0) return 0;
-					return numPawnsOnFile(board, player, file);
-				})
-				.sum();
+		var numPawnsPerFile = numPawnsPerFile(board, player);
+		int count = 0;
+		for (int file = 0; file < 8; file++) {
+			if (numPawnsPerFile[file] == 0) continue;
+			if (file > 0 && numPawnsPerFile[file - 1] == 0) continue;
+			if (file < 7 && numPawnsPerFile[file + 1] == 0) continue;
+			count += numPawnsPerFile[file];
+			file++; // the next file cannot be isolated if this one is
+		}
+
+		return 0.5 * count;
 	}
 
 	private static double mobilityReward(Board board) {

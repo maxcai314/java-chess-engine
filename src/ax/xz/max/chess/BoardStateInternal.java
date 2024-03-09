@@ -75,6 +75,54 @@ public record BoardStateInternal(long[] state) {
         };
     }
 
+    public int indexOf(Piece piece) {
+        for (int i = 0; i < PIECES.length; i++) {
+            if (PIECES[i].equals(piece))
+                return i;
+        }
+        return -1;
+    }
+
+    public Iterable<BoardCoordinate> allOf(Piece piece) {
+        int index = indexOf(piece);
+        if (index == -1)
+            throw new IllegalArgumentException("Piece not found in BoardStateInternal");
+        return () -> new Iterator<>() {
+            private long remaining = state[index];
+
+            @Override
+            public boolean hasNext() {
+                return remaining != 0;
+            }
+
+            @Override
+            public BoardCoordinate next() {
+                int location = Long.numberOfTrailingZeros(remaining);
+                remaining &= ~(1L << location);
+                return new BoardCoordinate(location / 8, location % 8);
+            }
+        };
+    }
+
+    public Iterable<BoardCoordinate> allPieces() {
+        long pieces = Arrays.stream(state).reduce(0L, (a, b) -> a | b);
+        return () -> new Iterator<>() {
+            private long remaining = pieces;
+
+            @Override
+            public boolean hasNext() {
+                return remaining != 0;
+            }
+
+            @Override
+            public BoardCoordinate next() {
+                int location = Long.numberOfTrailingZeros(remaining);
+                remaining &= ~(1L << location);
+                return new BoardCoordinate(location / 8, location % 8);
+            }
+        };
+    }
+
     public Iterable<Piece> rank(int rank) {
         return () -> new Iterator<>() {
             private int file = 0;

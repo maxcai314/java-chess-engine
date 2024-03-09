@@ -585,30 +585,26 @@ public class BoardState {
 	private Set<PlayerMove> unprocessedLegalMoves0(Player currentPlayer) {
 		ArrayList<PlayerMove> legalMoves = new ArrayList<>();
 
-		for (int rank = 0; rank < 8; rank++) {
-			for (int file = 0; file < 8; file++) {
-				BoardCoordinate position = new BoardCoordinate(rank, file);
-				Piece piece = pieceAt(position);
+		for (PieceType pieceType : PieceType.values()) {
+			var piece = new Piece(currentPlayer, pieceType);
 
-				if (piece == null || piece.owner() != currentPlayer)
-					continue;
+			for (BoardCoordinate location : board.allOf(piece))
+				attacksUsingPiece(piece, location).forEach(legalMoves::add);
+		}
 
-				attacksUsingPiece(piece, position).forEach(legalMoves::add);
+		// pawn pushes
+		var pawn = new Piece(currentPlayer, PieceType.PAWN);
+		for (BoardCoordinate position : board.allOf(pawn)) {
+			BoardCoordinate singleStepFrom = position.step(currentPlayer.pawnDirection(), 0);
+			if (isEmpty(singleStepFrom)) {
+				if (singleStepFrom.rank() == currentPlayer.opponent().homeRank()) {
+					legalMoves.addAll(Set.of(Promotion.allPromotions(pawn, position, singleStepFrom)));
+				} else {
+					legalMoves.add(new RegularMove(pawn, position, singleStepFrom));
 
-				// pawn pushes
-				if (piece.type() == PieceType.PAWN) {
-					BoardCoordinate singleStepFrom = position.step(currentPlayer.pawnDirection(), 0);
-					if (isEmpty(singleStepFrom)) {
-						if (singleStepFrom.rank() == currentPlayer.opponent().homeRank()) {
-							legalMoves.addAll(Set.of(Promotion.allPromotions(piece, position, singleStepFrom)));
-						} else {
-							legalMoves.add(new RegularMove(piece, position, singleStepFrom));
-
-							BoardCoordinate doubleStepFrom = singleStepFrom.step(currentPlayer.pawnDirection(), 0);
-							if (position.rank() == currentPlayer.pawnRank() && isEmpty(doubleStepFrom)) {
-								legalMoves.add(new RegularMove(piece, position, doubleStepFrom));
-							}
-						}
+					BoardCoordinate doubleStepFrom = singleStepFrom.step(currentPlayer.pawnDirection(), 0);
+					if (position.rank() == currentPlayer.pawnRank() && isEmpty(doubleStepFrom)) {
+						legalMoves.add(new RegularMove(pawn, position, doubleStepFrom));
 					}
 				}
 			}

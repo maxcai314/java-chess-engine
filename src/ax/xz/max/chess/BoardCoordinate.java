@@ -3,6 +3,7 @@ package ax.xz.max.chess;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public record BoardCoordinate(
 		int rank,
@@ -27,17 +28,5 @@ public record BoardCoordinate(
 
 	public boolean isValid() {
 		return rank >= 0 && rank < 8 && file >= 0 && file < 8;
-	}
-
-	public static Set<BoardCoordinate> allFromRank(int rank) {
-		return IntStream.range(0, 8)
-				.mapToObj(file -> new BoardCoordinate(rank, file))
-				.collect(Collectors.toSet());
-	}
-
-	public static Set<BoardCoordinate> allFromFile(int file) {
-		return IntStream.range(0, 8)
-				.mapToObj(rank -> new BoardCoordinate(rank, file))
-				.collect(Collectors.toSet());
 	}
 }
