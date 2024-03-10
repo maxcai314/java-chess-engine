@@ -1,6 +1,7 @@
 package ax.xz.max.chess;
 
 import ax.xz.max.chess.moves.*;
+import ax.xz.max.chess.util.ConcurrentLimitedHashMap;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -480,15 +481,6 @@ public class BoardState {
 				.map(a -> new RegularMove(piece, a.to(), a.from())); // reverse move
 	}
 
-	private static final PieceType[] ATTACKING_PIECES = new PieceType[]{
-			PieceType.PAWN,
-			PieceType.KNIGHT,
-			PieceType.BISHOP,
-			PieceType.ROOK,
-			PieceType.QUEEN,
-			PieceType.KING
-	};
-
 	/**
 	 * Determines whether a given square is defended by the opponent,
 	 * regardless of legality
@@ -496,7 +488,7 @@ public class BoardState {
 	private boolean isDefendedBy(Player opponent, BoardCoordinate position) {
 		// strategy: replace the position square with a piece of any type, and see if it attacks an opponent piece of the same type
 		Player player = opponent.opponent();
-		return Stream.of(ATTACKING_PIECES)
+		return Stream.of(PieceType.values())
 				.flatMap(pieceType -> attacksUsingPiece(new Piece(player, pieceType), position))
 				.anyMatch(move -> new Piece(opponent, move.piece().type()).equals(pieceAt(move.to())));
 	}
@@ -566,18 +558,12 @@ public class BoardState {
 		return legalMoves;
 	}
 
-	private static final int MAX_CACHE_SIZE = 2_000_000;
-	private static class TranspositionTable extends LinkedHashMap<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> {
-		@Override
-		protected boolean removeEldestEntry(Map.Entry<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> eldest) {
-			return size() > MAX_CACHE_SIZE;
-		}
-	}
-	private static final Map<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> transpositionTable = Collections.synchronizedMap(new TranspositionTable());
+	private static final int MAX_CACHE_SIZE = 500_000;
+	private static final Map<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> legalMovesCache = new ConcurrentLimitedHashMap<>(MAX_CACHE_SIZE);
 
 	private Set<PlayerMove> unprocessedLegalMoves(Player currentPlayer) {
 		return new HashSet<>(
-				transpositionTable.computeIfAbsent(board, a -> new EnumMap<>(Player.class))
+				legalMovesCache.computeIfAbsent(board, a -> new EnumMap<>(Player.class))
 						.computeIfAbsent(currentPlayer, this::unprocessedLegalMoves0)
 		);
 	}

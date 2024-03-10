@@ -83,7 +83,6 @@ public record MoveRecord(
 					.filter(a -> a.to().equals(move.to()))
 					.map(PlayerMove::from)
 					.map(BoardCoordinate::file)
-					.filter(file -> !fileAmbiguous || file == move.from().rank()) // only filter if file ambiguous
 					.count() > 1L;
 
 			if (move.piece().type() != PieceType.PAWN)

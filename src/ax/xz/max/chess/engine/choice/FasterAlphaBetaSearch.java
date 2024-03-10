@@ -28,10 +28,11 @@ public record FasterAlphaBetaSearch(
 		return evaluator.evaluate(board);
 	}
 
-	private List<PlayerMove> orderedLegalMoves(Board board) {
-		return board.getLegalMoves().stream()
-				.sorted(Comparator.<PlayerMove>comparingDouble(move -> movePriority(board, move)).reversed())
-				.toList();
+	private Collection<PlayerMove> orderedLegalMoves(Board board) {
+		return board.getLegalMoves();
+//		return board.getLegalMoves().stream()
+//				.sorted(Comparator.<PlayerMove>comparingDouble(move -> movePriority(board, move)).reversed())
+//				.toList();
 	}
 
 	private double movePriority(Board board, PlayerMove move) {
