@@ -144,7 +144,7 @@ public class PieceMapEvaluator implements BoardEvaluator {
 		for (int numPawns : numPawnsPerFile) {
 			if (numPawns > 1) count += numPawns - 1;
 		}
-		return 0.5 * count;
+		return 0.2 * count;
 	}
 
 	/** should be subtracted from the evaluation */
@@ -159,7 +159,7 @@ public class PieceMapEvaluator implements BoardEvaluator {
 			var step = position.step(player.pawnDirection(), 0);
 			if (step.isValid() && !board.boardState().isEmpty(step)) count++;
 		}
-		return 0.5 * count;
+		return 0.1 * count;
 	}
 
 	/** should be subtracted from the evaluation */

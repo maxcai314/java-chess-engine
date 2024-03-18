@@ -21,8 +21,10 @@ public class SearchTest {
 		Board board = new Board();
 
 		var evaluator = new PieceMapEvaluator();
-		var whiteAlgorithm = new HumanInput();
-		var blackAlgorithm = new FasterAlphaBetaSearch(evaluator, 5);
+		var blackAlgorithm = new FasterAlphaBetaSearch(evaluator, 4);
+		var whiteAlgorithm = new FasterAlphaBetaSearch(evaluator, 4);
+//		var whiteAlgorithm = new HumanInput();
+//		var blackAlgorithm = new HumanInput();
 
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			System.out.println("Shutting down...");

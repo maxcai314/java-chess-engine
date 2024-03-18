@@ -71,19 +71,21 @@ public record MoveRecord(
 			sb.append(castle); // we're not done, what if check/mate?
 		} else { // we have to format like a normal move
 			Set<PlayerMove> legalMoves = prevBoard().getLegalMoves();
-			boolean fileAmbiguous = move.piece().type() == PieceType.PAWN ?
-					isCapture() :
-					legalMoves.stream()
-							.filter(a -> a.piece().equals(move().piece()))
-							.filter(a -> a.to().equals(move.to()))
-							.count() > 1L;
+			boolean fileAmbiguous = true;
+//					move.piece().type() == PieceType.PAWN ?
+//					isCapture() :
+//					legalMoves.stream()
+//							.filter(a -> a.piece().equals(move().piece()))
+//							.filter(a -> a.to().equals(move.to()))
+//							.count() > 1L;
 
-			boolean rankAmbiguous = (move.piece().type() != PieceType.PAWN) && legalMoves.stream()
-					.filter(a -> a.piece().equals(move().piece()))
-					.filter(a -> a.to().equals(move.to()))
-					.map(PlayerMove::from)
-					.map(BoardCoordinate::file)
-					.count() > 1L;
+			boolean rankAmbiguous = true;
+//					(move.piece().type() != PieceType.PAWN) && legalMoves.stream()
+//					.filter(a -> a.piece().equals(move().piece()))
+//					.filter(a -> a.to().equals(move.to()))
+//					.map(PlayerMove::from)
+//					.map(BoardCoordinate::file)
+//					.count() > 1L;
 
 			if (move.piece().type() != PieceType.PAWN)
 				sb.append(Character.toUpperCase(move().piece().type().toChar()));

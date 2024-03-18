@@ -7,6 +7,7 @@ import ax.xz.max.chess.moves.*;
 
 import java.util.*;
 import java.util.concurrent.StructuredTaskScope;
+import java.util.concurrent.atomic.AtomicReference;
 
 public record FasterAlphaBetaSearch(
 		BoardEvaluator evaluator,
@@ -19,8 +20,8 @@ public record FasterAlphaBetaSearch(
 	@Override
 	public PlayerMove chooseNextMove(Board board) {
 		return switch (board.currentTurn()) {
-			case WHITE -> findMax(board);
-			case BLACK -> findMin(board);
+			case WHITE -> concurrentFindMax(board);
+			case BLACK -> concurrentFindMin(board);
 		};
 	}
 
@@ -124,6 +125,102 @@ public record FasterAlphaBetaSearch(
 			}
 		}
 		return bestMove;
+	}
+
+	private PlayerMove concurrentFindMax(Board board) {
+		Map<PlayerMove, Double> moveScores = new HashMap<>();
+
+		var alpha = new AtomicReference<>(Double.NEGATIVE_INFINITY); // should be shared
+		var beta = Double.POSITIVE_INFINITY;
+
+		try (var scope = new StructuredTaskScope<>("Find Max", Thread::new)) { // platform threads
+			for (PlayerMove move : orderedLegalMoves(board)) {
+				var copy = board.copy();
+				copy.makeMove(move);
+				scope.fork(() -> {
+					double score = concurrentAlphaBetaMin(copy, alpha, beta, depth - 1);
+					moveScores.put(move, score);
+					return null;
+				});
+			}
+			scope.join();
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+		PlayerMove bestMove = null;
+		double bestScore = Double.NEGATIVE_INFINITY;
+		for (var entry : moveScores.entrySet()) {
+			if (entry.getValue() > bestScore) {
+				bestScore = entry.getValue();
+				bestMove = entry.getKey();
+			}
+		}
+		return bestMove;
+	}
+
+	private PlayerMove concurrentFindMin(Board board) {
+		Map<PlayerMove, Double> moveScores = new HashMap<>();
+
+		var alpha = Double.NEGATIVE_INFINITY;
+		var beta = new AtomicReference<>(Double.POSITIVE_INFINITY); // should be shared
+
+		try (var scope = new StructuredTaskScope<>("Find Min", Thread::new)) { // platform threads
+			for (PlayerMove move : orderedLegalMoves(board)) {
+				var copy = board.copy();
+				copy.makeMove(move);
+				scope.fork(() -> {
+					double score = concurrentAlphaBetaMax(copy, alpha, beta, depth - 1);
+					moveScores.put(move, score);
+					return null;
+				});
+			}
+			scope.join();
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+		PlayerMove bestMove = null;
+		double bestScore = Double.POSITIVE_INFINITY;
+		for (var entry : moveScores.entrySet()) {
+			if (entry.getValue() < bestScore) {
+				bestScore = entry.getValue();
+				bestMove = entry.getKey();
+			}
+		}
+		return bestMove;
+	}
+
+	private double concurrentAlphaBetaMax(Board board, double alpha, AtomicReference<Double> beta, int depthRemaining) { // todo: alpha shouldn't be atomic
+		if (depthRemaining == 0 || board.gameState() != GameState.UNFINISHED) return evaluate(board);
+		for (PlayerMove move : orderedLegalMoves(board)) {
+			var moveRecord = board.makeMove(move);
+			try {
+				double score = alphaBetaMin(board, alpha, beta.get(), depthRemaining - 1);
+				double prevMin = beta.get();
+				if (score >= prevMin) return prevMin; // hard beta cutoff
+				if (score > alpha)
+					alpha = score; // alpha acts like max
+			} finally {
+				board.unmakeMove(moveRecord);
+			}
+		}
+		return alpha;
+	}
+
+	private double concurrentAlphaBetaMin(Board board, AtomicReference<Double> alpha, double beta, int depthRemaining) { // todo: beta shouldn't be atomic
+		if (depthRemaining == 0 || board.gameState() != GameState.UNFINISHED) return evaluate(board);
+		for (PlayerMove move : orderedLegalMoves(board)) {
+			var moveRecord = board.makeMove(move);
+			try {
+				double score = alphaBetaMax(board, alpha.get(), beta, depthRemaining - 1);
+				double prevMax = alpha.get();
+				if (score <= prevMax) return prevMax; // hard alpha cutoff
+				if (score < beta)
+					beta = score; // beta acts like min
+			} finally {
+				board.unmakeMove(moveRecord);
+			}
+		}
+		return beta;
 	}
 
 	private double alphaBetaMax(Board board, double alpha, double beta, int depthRemaining) {
