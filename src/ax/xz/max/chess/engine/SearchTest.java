@@ -21,8 +21,8 @@ public class SearchTest {
 		Board board = new Board();
 
 		var evaluator = new PieceMapEvaluator();
-		var blackAlgorithm = new FasterAlphaBetaSearch(evaluator, 4);
-		var whiteAlgorithm = new FasterAlphaBetaSearch(evaluator, 4);
+		var blackAlgorithm = new FasterAlphaBetaSearch(evaluator, 5);
+		var whiteAlgorithm = new FasterAlphaBetaSearch(evaluator, 5);
 //		var whiteAlgorithm = new HumanInput();
 //		var blackAlgorithm = new HumanInput();
 
@@ -40,10 +40,12 @@ public class SearchTest {
 			System.out.println(board);
 			System.out.printf("%d. %s to move%n", board.boardState().fullMoveNumber() / 2 + 1, board.currentTurn());
 
+			Instant start = Instant.now();
 			PlayerMove move = switch (board.currentTurn()) {
 				case WHITE -> white.chooseNextMove(board);
 				case BLACK -> black.chooseNextMove(board);
 			};
+			System.out.println("Time taken: " + Duration.between(start, Instant.now()).toSeconds() + " seconds");
 
 			var moveRecord = board.makeMove(move);
 			System.out.printf("Making move %s:%n", moveRecord);
