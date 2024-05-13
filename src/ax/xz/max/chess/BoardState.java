@@ -1,7 +1,7 @@
 package ax.xz.max.chess;
 
 import ax.xz.max.chess.moves.*;
-import ax.xz.max.chess.util.ConcurrentLimitedHashMap;
+import ax.xz.max.chess.util.LimitedCache;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -559,7 +559,7 @@ public class BoardState {
 	}
 
 	private static final int MAX_CACHE_SIZE = 500_000;
-	private static final Map<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> legalMovesCache = new ConcurrentLimitedHashMap<>(MAX_CACHE_SIZE);
+	private static final LimitedCache<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> legalMovesCache = new LimitedCache<>(MAX_CACHE_SIZE);
 
 	private Set<PlayerMove> unprocessedLegalMoves(Player currentPlayer) {
 		return new HashSet<>(
