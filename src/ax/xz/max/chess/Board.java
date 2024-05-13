@@ -59,7 +59,7 @@ public class Board {
 				case WHITE -> ". ";
 				case BLACK -> "... ";
 			});
-			builder.append(move).append(" ");
+			builder.append(move.toUCI()).append(" "); // todo: use algebraic notation
 		}
 		return builder.toString();
 	}

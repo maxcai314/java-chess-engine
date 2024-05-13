@@ -36,4 +36,12 @@ public sealed interface PlayerMove extends BoardUpdater permits RegularMove, Cas
 	 */
 	@Override
 	String toString();
+
+	/**
+	 * @return the UCI representation of the move
+	 * Consists of four or five characters: the starting coordinate, the ending coordinate, and the promotion piece
+	 */
+	default String toUCI() {
+		return from().toString() + to().toString();
+	}
 }

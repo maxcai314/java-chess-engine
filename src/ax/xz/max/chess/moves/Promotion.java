@@ -46,12 +46,13 @@ public record Promotion(
 		return oldPiece.owner();
 	}
 
-	public Piece getNewPiece() {
-		return newPiece;
-	}
-
 	@Override
 	public String toString() {
 		return String.format("%s%s=%s", from, to, newPiece.toChar());
+	}
+
+	@Override
+	public String toUCI() {
+		return String.format("%s%s%c", from, to, Character.toLowerCase(newPiece.type().toChar()));
 	}
 }

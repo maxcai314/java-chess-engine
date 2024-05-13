@@ -64,14 +64,18 @@ public record MoveRecord(
 				&& result.getCurrentState() == GameState.ofWinner(player()); // resultant state estimate will suffice
 	}
 
+	public String toUCI() {
+		return move.toUCI();
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		if (move instanceof Castle castle) {
 			sb.append(castle); // we're not done, what if check/mate?
 		} else { // we have to format like a normal move
-			Set<PlayerMove> legalMoves = prevBoard().getLegalMoves();
-			boolean fileAmbiguous = true;
+//			Set<PlayerMove> legalMoves = prevBoard().getLegalMoves();
+			boolean fileAmbiguous = true; // todo: fix logic
 //					move.piece().type() == PieceType.PAWN ?
 //					isCapture() :
 //					legalMoves.stream()
@@ -101,7 +105,7 @@ public record MoveRecord(
 			sb.append(move().to());
 
 			if (move instanceof Promotion promotion)
-				sb.append("=").append(promotion.getNewPiece().type().toChar());
+				sb.append("=").append(promotion.newPiece().type().toChar());
 		}
 
 		if (isMate())
