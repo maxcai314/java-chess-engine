@@ -133,7 +133,7 @@ public record FasterAlphaBetaSearch(
 		var alpha = new AtomicReference<>(Double.NEGATIVE_INFINITY); // should be shared
 		var beta = Double.POSITIVE_INFINITY;
 
-		try (var scope = new StructuredTaskScope<>("Find Max", Thread::new)) { // platform threads
+		try (var scope = new StructuredTaskScope<>("Find Max", Thread.ofPlatform().factory())) { // platform threads
 			for (PlayerMove move : orderedLegalMoves(board)) {
 				var copy = board.copy();
 				copy.makeMove(move);
@@ -164,7 +164,7 @@ public record FasterAlphaBetaSearch(
 		var alpha = Double.NEGATIVE_INFINITY;
 		var beta = new AtomicReference<>(Double.POSITIVE_INFINITY); // should be shared
 
-		try (var scope = new StructuredTaskScope<>("Find Min", Thread::new)) { // platform threads
+		try (var scope = new StructuredTaskScope<>("Find Min", Thread.ofPlatform().factory())) { // platform threads
 			for (PlayerMove move : orderedLegalMoves(board)) {
 				var copy = board.copy();
 				copy.makeMove(move);
