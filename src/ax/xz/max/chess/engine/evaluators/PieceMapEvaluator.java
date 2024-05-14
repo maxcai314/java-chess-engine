@@ -27,7 +27,7 @@ public class PieceMapEvaluator implements BoardEvaluator {
 	/** should be added to the evaluation */
 	private static double materialReward(Board board) {
 		double total = 0;
-		boolean isEndGame = isEndGame(board);
+		boolean isEndGame = isEndgame(board);
 		for (var player : Player.values()) {
 			for (var type : PieceType.values()) {
 				var piece = new Piece(player, type);
@@ -206,27 +206,27 @@ public class PieceMapEvaluator implements BoardEvaluator {
 	}
 
 	private static double moveReward(PlayerMove move) {
-		double total = 0.01;
+		double total = 0.005;
 		total += switch(move) {
-			case Castle __ -> 0.02;
-			case Promotion __ -> 0.01;
+			case Castle __ -> 0.01;
+			case Promotion __ -> 0.02;
 			default -> 0;
 		};
 		total += switch (move.piece().type()) {
-			case KNIGHT, BISHOP -> 0.03;
-			case ROOK -> 0.02;
+			case KNIGHT, BISHOP -> 0.001;
+			case ROOK -> 0.001;
 			case QUEEN -> 0.001;
 			default -> 0;
 		};
 		return total;
 	}
 
-	private static boolean isEndGame(Board board) {
+	private static boolean isEndgame(Board board) {
 		return board.boardState().numExpensivePieces() < 6;
 	}
 
 	private static double endgameReward(Board board) {
-		if (!isEndGame(board)) return 0;
+		if (!isEndgame(board)) return 0;
 
 		double total = 0;
 
