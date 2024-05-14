@@ -6,6 +6,7 @@ import ax.xz.max.chess.engine.evaluators.BoardEvaluator;
 import ax.xz.max.chess.moves.*;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.StructuredTaskScope;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -17,12 +18,17 @@ public record FasterAlphaBetaSearch(
 		if (depth <= 0)
 			throw new IllegalArgumentException("Search depth must be positive");
 	}
+
 	@Override
 	public PlayerMove chooseNextMove(Board board) {
-		return switch (board.currentTurn()) {
-			case WHITE -> concurrentFindMax(board);
-			case BLACK -> concurrentFindMin(board);
-		};
+		try {
+			return switch (board.currentTurn()) {
+				case WHITE -> concurrentFindMax(board);
+				case BLACK -> concurrentFindMin(board);
+			};
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	private double evaluate(Board board) {
@@ -127,26 +133,33 @@ public record FasterAlphaBetaSearch(
 		return bestMove;
 	}
 
-	private PlayerMove concurrentFindMax(Board board) {
+	private PlayerMove concurrentFindMax(Board board) throws InterruptedException {
 		Map<PlayerMove, Double> moveScores = new HashMap<>();
 
 		var alpha = new AtomicReference<>(Double.NEGATIVE_INFINITY); // should be shared
 		var beta = Double.POSITIVE_INFINITY;
 
-		try (var scope = new StructuredTaskScope<>("Find Max", Thread.ofPlatform().factory())) { // platform threads
+		try (var scope = new StructuredTaskScope.ShutdownOnFailure("Find Max", Thread.ofPlatform().factory())) { // platform threads
+			var moveTasks = new HashMap<PlayerMove, StructuredTaskScope.Subtask<Double>>();
+
 			for (PlayerMove move : orderedLegalMoves(board)) {
 				var copy = board.copy();
 				copy.makeMove(move);
-				scope.fork(() -> {
-					double score = concurrentAlphaBetaMin(copy, alpha, beta, depth - 1);
-					moveScores.put(move, score);
-					return null;
-				});
+
+				moveTasks.put(move, scope.fork(() -> concurrentAlphaBetaMin(copy, alpha, beta, depth - 1)));
 			}
+
 			scope.join();
-		} catch (InterruptedException e) {
+			scope.throwIfFailed();
+
+			for (var entry : moveTasks.entrySet()) {
+				moveScores.put(entry.getKey(), entry.getValue().get());
+			}
+		} catch (ExecutionException e) {
 			throw new RuntimeException(e);
 		}
+
+
 		PlayerMove bestMove = null;
 		double bestScore = Double.NEGATIVE_INFINITY;
 		for (var entry : moveScores.entrySet()) {
@@ -158,26 +171,32 @@ public record FasterAlphaBetaSearch(
 		return bestMove;
 	}
 
-	private PlayerMove concurrentFindMin(Board board) {
+	private PlayerMove concurrentFindMin(Board board) throws InterruptedException {
 		Map<PlayerMove, Double> moveScores = new HashMap<>();
 
 		var alpha = Double.NEGATIVE_INFINITY;
 		var beta = new AtomicReference<>(Double.POSITIVE_INFINITY); // should be shared
 
-		try (var scope = new StructuredTaskScope<>("Find Min", Thread.ofPlatform().factory())) { // platform threads
+		try (var scope = new StructuredTaskScope.ShutdownOnFailure("Find Min", Thread.ofPlatform().factory())) { // platform threads
+			var moveTasks = new HashMap<PlayerMove, StructuredTaskScope.Subtask<Double>>();
+
 			for (PlayerMove move : orderedLegalMoves(board)) {
 				var copy = board.copy();
 				copy.makeMove(move);
-				scope.fork(() -> {
-					double score = concurrentAlphaBetaMax(copy, alpha, beta, depth - 1);
-					moveScores.put(move, score);
-					return null;
-				});
+
+				moveTasks.put(move, scope.fork(() -> concurrentAlphaBetaMax(copy, alpha, beta, depth - 1)));
 			}
+
 			scope.join();
-		} catch (InterruptedException e) {
+			scope.throwIfFailed();
+
+			for (var entry : moveTasks.entrySet()) {
+				moveScores.put(entry.getKey(), entry.getValue().get());
+			}
+		} catch (ExecutionException e) {
 			throw new RuntimeException(e);
 		}
+
 		PlayerMove bestMove = null;
 		double bestScore = Double.POSITIVE_INFINITY;
 		for (var entry : moveScores.entrySet()) {
