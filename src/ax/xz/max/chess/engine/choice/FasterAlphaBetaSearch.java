@@ -152,9 +152,7 @@ public record FasterAlphaBetaSearch(
 			scope.join();
 			scope.throwIfFailed();
 
-			for (var entry : moveTasks.entrySet()) {
-				moveScores.put(entry.getKey(), entry.getValue().get());
-			}
+			moveTasks.forEach((move, task) -> moveScores.put(move, task.get()));
 		} catch (ExecutionException e) {
 			throw new RuntimeException(e);
 		}
@@ -190,9 +188,7 @@ public record FasterAlphaBetaSearch(
 			scope.join();
 			scope.throwIfFailed();
 
-			for (var entry : moveTasks.entrySet()) {
-				moveScores.put(entry.getKey(), entry.getValue().get());
-			}
+			moveTasks.forEach((move, task) -> moveScores.put(move, task.get()));
 		} catch (ExecutionException e) {
 			throw new RuntimeException(e);
 		}
@@ -208,7 +204,7 @@ public record FasterAlphaBetaSearch(
 		return bestMove;
 	}
 
-	private double concurrentAlphaBetaMax(Board board, double alpha, AtomicReference<Double> beta, int depthRemaining) { // todo: alpha shouldn't be atomic
+	private double concurrentAlphaBetaMax(Board board, double alpha, AtomicReference<Double> beta, int depthRemaining) {
 		if (depthRemaining == 0 || board.gameState() != GameState.UNFINISHED) return evaluate(board);
 		for (PlayerMove move : orderedLegalMoves(board)) {
 			var moveRecord = board.makeMove(move);
@@ -225,7 +221,7 @@ public record FasterAlphaBetaSearch(
 		return alpha;
 	}
 
-	private double concurrentAlphaBetaMin(Board board, AtomicReference<Double> alpha, double beta, int depthRemaining) { // todo: beta shouldn't be atomic
+	private double concurrentAlphaBetaMin(Board board, AtomicReference<Double> alpha, double beta, int depthRemaining) {
 		if (depthRemaining == 0 || board.gameState() != GameState.UNFINISHED) return evaluate(board);
 		for (PlayerMove move : orderedLegalMoves(board)) {
 			var moveRecord = board.makeMove(move);
