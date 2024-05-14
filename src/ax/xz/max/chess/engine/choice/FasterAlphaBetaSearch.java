@@ -23,8 +23,8 @@ public record FasterAlphaBetaSearch(
 	public PlayerMove chooseNextMove(Board board) {
 		try {
 			return switch (board.currentTurn()) {
-				case WHITE -> concurrentFindMax(board);
-				case BLACK -> concurrentFindMin(board);
+				case WHITE -> findMax(board);
+				case BLACK -> findMin(board);
 			};
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
@@ -69,27 +69,31 @@ public record FasterAlphaBetaSearch(
 		return result;
 	}
 
-	public PlayerMove findMax(Board board) {
-//		int fakeDepth = depth;
-//		if (board.boardState().numPieces() < 10) {
-//			fakeDepth += 2;
-//		}
-//		int depth = fakeDepth;
+	public PlayerMove findMax(Board board) throws InterruptedException {
 		Map<PlayerMove, Double> moveScores = new HashMap<>();
-		try (var scope = new StructuredTaskScope<>("Find Max", Thread::new)) { // platform threads
+
+		var alpha = Double.NEGATIVE_INFINITY;
+		var beta = Double.POSITIVE_INFINITY;
+
+		try (var scope = new StructuredTaskScope.ShutdownOnFailure("Find Max", Thread.ofPlatform().factory())) { // platform threads
+			var moveTasks = new HashMap<PlayerMove, StructuredTaskScope.Subtask<Double>>();
+
 			for (PlayerMove move : orderedLegalMoves(board)) {
 				var copy = board.copy();
 				copy.makeMove(move);
-				scope.fork(() -> {
-					double score = alphaBetaMin(copy, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, depth - 1);
-					moveScores.put(move, score);
-					return null;
-				});
+
+				moveTasks.put(move, scope.fork(() -> alphaBetaMin(copy, alpha, beta, depth - 1)));
 			}
+
 			scope.join();
-		} catch (InterruptedException e) {
+			scope.throwIfFailed();
+
+			moveTasks.forEach((move, task) -> moveScores.put(move, task.get()));
+		} catch (ExecutionException e) {
 			throw new RuntimeException(e);
 		}
+
+
 		PlayerMove bestMove = null;
 		double bestScore = Double.NEGATIVE_INFINITY;
 		for (var entry : moveScores.entrySet()) {
@@ -101,27 +105,30 @@ public record FasterAlphaBetaSearch(
 		return bestMove;
 	}
 
-	public PlayerMove findMin(Board board) {
-//		int fakeDepth = depth;
-//		if (board.boardState().numPieces() < 10) {
-//			fakeDepth += 2;
-//		}
-//		int depth = fakeDepth;
+	public PlayerMove findMin(Board board) throws InterruptedException {
 		Map<PlayerMove, Double> moveScores = new HashMap<>();
-		try (var scope = new StructuredTaskScope<>("Find Min", Thread::new)) { // platform threads
+
+		var alpha = Double.NEGATIVE_INFINITY;
+		var beta = Double.POSITIVE_INFINITY; // should be shared
+
+		try (var scope = new StructuredTaskScope.ShutdownOnFailure("Find Min", Thread.ofPlatform().factory())) { // platform threads
+			var moveTasks = new HashMap<PlayerMove, StructuredTaskScope.Subtask<Double>>();
+
 			for (PlayerMove move : orderedLegalMoves(board)) {
 				var copy = board.copy();
 				copy.makeMove(move);
-				scope.fork(() -> {
-					double score = alphaBetaMax(copy, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, depth - 1);
-					moveScores.put(move, score);
-					return null;
-				});
+
+				moveTasks.put(move, scope.fork(() -> alphaBetaMax(copy, alpha, beta, depth - 1)));
 			}
+
 			scope.join();
-		} catch (InterruptedException e) {
+			scope.throwIfFailed();
+
+			moveTasks.forEach((move, task) -> moveScores.put(move, task.get()));
+		} catch (ExecutionException e) {
 			throw new RuntimeException(e);
 		}
+
 		PlayerMove bestMove = null;
 		double bestScore = Double.POSITIVE_INFINITY;
 		for (var entry : moveScores.entrySet()) {
