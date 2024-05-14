@@ -27,11 +27,12 @@ public class PieceMapEvaluator implements BoardEvaluator {
 	/** should be added to the evaluation */
 	private static double materialReward(Board board) {
 		double total = 0;
+		boolean isEndGame = isEndGame(board);
 		for (var player : Player.values()) {
 			for (var type : PieceType.values()) {
 				var piece = new Piece(player, type);
 				for (var position : board.boardState().board().allOf(piece)) {
-					total += valueOf(position, piece);
+					total += valueOf(position, piece, isEndGame);
 				}
 			}
 		}
@@ -116,7 +117,7 @@ public class PieceMapEvaluator implements BoardEvaluator {
 
 	private static final List<List<Double>> blackKingValue = whiteKingValue.reversed();
 
-	private static double valueOf(BoardCoordinate coordinate, Piece piece) {
+	private static double valueOf(BoardCoordinate coordinate, Piece piece, boolean isEndGame) {
 		return switch (piece.owner()) {
 			case WHITE -> switch (piece.type()) {
 				case PAWN -> whitePawnValue.get(coordinate.rank()).get(coordinate.file());
@@ -124,7 +125,7 @@ public class PieceMapEvaluator implements BoardEvaluator {
 				case BISHOP -> whiteBishopValue.get(coordinate.rank()).get(coordinate.file());
 				case ROOK -> whiteRookValue.get(coordinate.rank()).get(coordinate.file());
 				case QUEEN -> whiteQueenValue.get(coordinate.rank()).get(coordinate.file());
-				case KING -> whiteKingValue.get(coordinate.rank()).get(coordinate.file());
+				case KING -> isEndGame ? 0 : whiteKingValue.get(coordinate.rank()).get(coordinate.file());
 			};
 
 			case BLACK -> -1 * switch (piece.type()) {
@@ -133,7 +134,7 @@ public class PieceMapEvaluator implements BoardEvaluator {
 				case BISHOP -> blackBishopValue.get(coordinate.rank()).get(coordinate.file());
 				case ROOK -> blackRookValue.get(coordinate.rank()).get(coordinate.file());
 				case QUEEN -> blackQueenValue.get(coordinate.rank()).get(coordinate.file());
-				case KING -> blackKingValue.get(coordinate.rank()).get(coordinate.file());
+				case KING -> isEndGame ? 0 : blackKingValue.get(coordinate.rank()).get(coordinate.file());
 			};
 		};
 	}
@@ -220,8 +221,12 @@ public class PieceMapEvaluator implements BoardEvaluator {
 		return total;
 	}
 
+	private static boolean isEndGame(Board board) {
+		return board.boardState().numExpensivePieces() < 6;
+	}
+
 	private static double endgameReward(Board board) {
-		if (board.boardState().numExpensivePieces() > 5) return 0;
+		if (!isEndGame(board)) return 0;
 
 		double total = 0;
 
