@@ -208,7 +208,7 @@ public class PieceMapEvaluator implements BoardEvaluator {
 	private static double moveReward(PlayerMove move) {
 		double total = 0.005;
 		total += switch(move) {
-			case Castle __ -> 0.01;
+			case Castle __ -> 0.005;
 			case Promotion __ -> 0.02;
 			default -> 0;
 		};
