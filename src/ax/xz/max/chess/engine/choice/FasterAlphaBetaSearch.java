@@ -30,10 +30,10 @@ public record FasterAlphaBetaSearch(
 	}
 
 	private Collection<PlayerMove> orderedLegalMoves(Board board) {
-		return board.getLegalMoves();
-//		return board.getLegalMoves().stream()
-//				.sorted(Comparator.<PlayerMove>comparingDouble(move -> movePriority(board, move)).reversed())
-//				.toList();
+//		return board.getLegalMoves();
+		return board.getLegalMoves().stream()
+				.sorted(Comparator.<PlayerMove>comparingDouble(move -> movePriority(board, move)).reversed())
+				.toList();
 	}
 
 	private double movePriority(Board board, PlayerMove move) {
