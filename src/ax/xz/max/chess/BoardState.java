@@ -602,7 +602,7 @@ public class BoardState {
 	}
 
 	private Set<PlayerMove> getLegalMoves0(Player currentPlayer) {
-		Set<PlayerMove> legalMoves = unprocessedLegalMoves(currentPlayer);
+		Set<PlayerMove> legalMoves = new HashSet<>(unprocessedLegalMoves(currentPlayer));
 		ArrayList<PlayerMove> additionalMoves = new ArrayList<>();
 
 		Castle shortCastle = Castle.shortCastle(currentPlayer);
@@ -705,7 +705,7 @@ public class BoardState {
 
 		return legalMoves.stream()
 				.filter(a -> !a.apply(this).isInCheck(currentPlayer))
-				.collect(Collectors.toSet());
+				.collect(Collectors.toUnmodifiableSet());
 	}
 
 	private record ParsedQueryParams(

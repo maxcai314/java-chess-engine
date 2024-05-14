@@ -38,69 +38,82 @@ public class PieceMapEvaluator implements BoardEvaluator {
 	}
 
 	private static final List<List<Double>> whitePawnValue = List.of(
-			List.of(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
-			List.of(1.0, 1.0, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0),
-			List.of(1.2, 1.2, 1.3, 1.3, 1.3, 1.2, 1.2, 1.2),
-			List.of(1.3, 1.4, 1.4, 1.4, 1.4, 1.4, 1.4, 1.3),
-			List.of(1.4, 1.5, 1.6, 1.7, 1.7, 1.5, 1.5, 1.4),
-			List.of(1.5, 1.6, 1.7, 1.8, 1.8, 1.6, 1.6, 1.5),
-			List.of(1.9, 2.0, 2.1, 2.2, 2.2, 2.1, 2.0, 1.9),
-			List.of(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+			List.of(0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00),
+			List.of(1.05, 1.10, 1.10, 0.80, 0.80, 1.10, 1.10, 1.05),
+			List.of(1.05, 0.95, 0.90, 1.00, 1.00, 0.90, 0.95, 1.05),
+			List.of(1.00, 1.00, 1.00, 1.20, 1.20, 1.00, 1.00, 1.00),
+			List.of(1.05, 1.05, 1.10, 1.25, 1.25, 1.10, 1.05, 1.05),
+			List.of(1.10, 1.10, 1.20, 1.30, 1.30, 1.20, 1.10, 1.10),
+			List.of(1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50),
+			List.of(0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00)
 	);
 
 	private static final List<List<Double>> blackPawnValue = whitePawnValue.reversed();
 
 	private static final List<List<Double>> whiteKnightValue = List.of(
-			List.of(1.5, 2.1, 2.5, 2.5, 2.5, 2.5, 2.1, 1.5),
-			List.of(1.8, 2.5, 2.5, 3.0, 3.0, 2.5, 2.5, 1.8),
-			List.of(2.5, 3.0, 3.2, 3.0, 3.0, 3.2, 3.0, 2.5),
-			List.of(2.5, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.5),
-			List.of(2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.8),
-			List.of(2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.8),
-			List.of(2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.8),
-			List.of(2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8)
+			List.of(2.70, 2.80, 2.90, 2.90, 2.90, 2.90, 2.80, 2.70),
+			List.of(2.80, 3.00, 3.20, 3.25, 3.25, 3.20, 3.00, 2.80),
+			List.of(2.90, 3.25, 3.30, 3.35, 3.35, 3.30, 3.25, 2.90),
+			List.of(2.90, 3.20, 3.35, 3.40, 3.40, 3.35, 3.20, 2.90),
+			List.of(2.90, 3.25, 3.35, 3.40, 3.40, 3.35, 3.25, 2.90),
+			List.of(2.90, 3.20, 3.30, 3.35, 3.35, 3.30, 3.20, 2.90),
+			List.of(2.80, 3.00, 3.20, 3.25, 3.25, 3.20, 3.00, 2.80),
+			List.of(2.70, 2.80, 2.90, 2.90, 2.90, 2.90, 2.80, 2.70)
 	);
 
 	private static final List<List<Double>> blackKnightValue = whiteKnightValue.reversed();
 
 	private static final List<List<Double>> whiteBishopValue = List.of(
-			List.of(2.0, 1.0, 2.1, 2.0, 2.0, 2.1, 1.0, 2.0),
-			List.of(2.5, 3.0, 2.5, 2.9, 2.9, 2.5, 3.0, 2.5),
-			List.of(2.5, 2.8, 3.0, 3.0, 3.0, 3.0, 3.0, 2.5),
-			List.of(2.8, 2.5, 3.6, 3.0, 3.0, 3.6, 2.5, 2.8),
-			List.of(3.0, 3.5, 3.0, 3.0, 3.0, 3.0, 3.5, 3.0),
-			List.of(3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0),
-			List.of(3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0),
-			List.of(2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8, 2.8)
+			List.of(3.10, 2.80, 2.90, 2.90, 2.90, 2.90, 2.80, 3.10),
+			List.of(3.20, 3.35, 3.30, 3.30, 3.30, 3.30, 3.35, 3.20),
+			List.of(3.20, 3.40, 3.40, 3.40, 3.40, 3.40, 3.40, 3.20),
+			List.of(3.20, 3.30, 3.40, 3.40, 3.40, 3.40, 3.30, 3.20),
+			List.of(3.20, 3.35, 3.35, 3.40, 3.40, 3.35, 3.35, 3.20),
+			List.of(3.20, 3.30, 3.35, 3.40, 3.40, 3.35, 3.30, 3.20),
+			List.of(3.20, 3.30, 3.30, 3.30, 3.30, 3.30, 3.30, 3.20),
+			List.of(3.10, 2.80, 2.90, 2.90, 2.90, 2.90, 2.80, 3.10)
 	);
 
 	private static final List<List<Double>> blackBishopValue = whiteBishopValue.reversed();
 
 	private static final List<List<Double>> whiteRookValue = List.of(
-			List.of(4.1, 4.5, 4.5, 5.0, 5.0, 5.0, 4.5, 4.1),
-			List.of(4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5),
-			List.of(5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0),
-			List.of(5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0),
-			List.of(5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0),
-			List.of(5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0),
-			List.of(5.1, 5.1, 5.1, 5.1, 5.1, 5.1, 5.1, 5.1),
-			List.of(5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0)
+			List.of(5.00, 5.00, 5.05, 5.10, 5.10, 5.05, 5.00, 5.00),
+			List.of(4.95, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 4.95),
+			List.of(4.95, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 4.95),
+			List.of(4.95, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 4.95),
+			List.of(4.95, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 4.95),
+			List.of(4.95, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 4.95),
+			List.of(5.05, 5.10, 5.10, 5.10, 5.10, 5.10, 5.10, 5.05),
+			List.of(5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00)
 	);
 
 	private static final List<List<Double>> blackRookValue = whiteRookValue.reversed();
 
 	private static final List<List<Double>> whiteQueenValue = List.of(
-			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0),
-			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0),
-			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0),
-			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0),
-			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0),
-			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0),
-			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0),
-			List.of(9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0)
+			List.of(8.80, 8.90, 8.90, 8.95, 8.95, 8.90, 8.90, 8.80),
+			List.of(8.90, 9.00, 9.05, 9.00, 9.00, 9.00, 9.00, 8.90),
+			List.of(8.90, 9.05, 9.05, 9.05, 9.05, 9.05, 9.00, 8.90),
+			List.of(9.00, 9.05, 9.05, 9.05, 9.05, 9.05, 9.00, 8.95),
+			List.of(8.95, 9.05, 9.05, 9.05, 9.05, 9.05, 9.00, 8.95),
+			List.of(8.90, 9.00, 9.05, 9.05, 9.05, 9.05, 9.00, 8.90),
+			List.of(8.90, 9.00, 9.00, 9.00, 9.00, 9.00, 9.00, 8.90),
+			List.of(8.80, 8.90, 8.90, 8.95, 8.95, 8.90, 8.90, 8.80)
 	);
 
 	private static final List<List<Double>> blackQueenValue = whiteQueenValue.reversed();
+
+	private static final List<List<Double>> whiteKingValue = List.of(
+			List.of(1.20, 1.30, 1.10, 1.00, 1.00, 1.10, 1.30, 1.20),
+			List.of(1.20, 1.20, 1.00, 1.00, 1.00, 1.00, 1.20, 1.20),
+			List.of(0.90, 0.80, 0.80, 0.80, 0.80, 0.80, 0.80, 0.90),
+			List.of(0.80, 0.70, 0.70, 0.60, 0.60, 0.70, 0.70, 0.80),
+			List.of(0.70, 0.60, 0.60, 0.50, 0.50, 0.60, 0.60, 0.70),
+			List.of(0.70, 0.60, 0.60, 0.50, 0.50, 0.60, 0.60, 0.70),
+			List.of(0.70, 0.60, 0.60, 0.50, 0.50, 0.60, 0.60, 0.70),
+			List.of(0.70, 0.60, 0.60, 0.50, 0.50, 0.60, 0.60, 0.70)
+	);
+
+	private static final List<List<Double>> blackKingValue = whiteKingValue.reversed();
 
 	private static double valueOf(BoardCoordinate coordinate, Piece piece) {
 		return switch (piece.owner()) {
@@ -110,7 +123,7 @@ public class PieceMapEvaluator implements BoardEvaluator {
 				case BISHOP -> whiteBishopValue.get(coordinate.rank()).get(coordinate.file());
 				case ROOK -> whiteRookValue.get(coordinate.rank()).get(coordinate.file());
 				case QUEEN -> whiteQueenValue.get(coordinate.rank()).get(coordinate.file());
-				case KING -> 0; // todo: make map
+				case KING -> whiteKingValue.get(coordinate.rank()).get(coordinate.file());
 			};
 
 			case BLACK -> -1 * switch (piece.type()) {
@@ -119,7 +132,7 @@ public class PieceMapEvaluator implements BoardEvaluator {
 				case BISHOP -> blackBishopValue.get(coordinate.rank()).get(coordinate.file());
 				case ROOK -> blackRookValue.get(coordinate.rank()).get(coordinate.file());
 				case QUEEN -> blackQueenValue.get(coordinate.rank()).get(coordinate.file());
-				case KING -> 0;
+				case KING -> blackKingValue.get(coordinate.rank()).get(coordinate.file());
 			};
 		};
 	}
