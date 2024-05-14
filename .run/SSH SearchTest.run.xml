@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="SSH SearchTest" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="ax.xz.max.chess.engine.SearchTest" />
+    <module name="java-chess-engine" />
+    <target name="maxster@xz.ax:22" />
+    <option name="VM_PARAMETERS" value="--enable-preview" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
