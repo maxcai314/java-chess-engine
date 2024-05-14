@@ -8,7 +8,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+
+import static ax.xz.max.chess.PieceType.PAWN;
 
 /**
  * Represents the state of a chess board.
@@ -408,71 +409,117 @@ public class BoardState {
 		return piece != null && piece.owner() == player;
 	}
 
-	private Stream<BoardCoordinate> attackingSteps(BoardCoordinate startPosition, BoardCoordinate step, Player player) {
-		int limit = BoardCoordinate.numPossibleSteps(startPosition, step);
-		return StreamSupport.<BoardCoordinate>stream(Spliterators.spliterator(
-				new Iterator<>() {
-					BoardCoordinate current = startPosition.step(step);
-					boolean triggered = false;
+	private void attackingSteps(List<BoardCoordinate> destination, BoardCoordinate startPosition, BoardCoordinate step, Player player) {
+		BoardCoordinate current = startPosition.step(step);
 
-					@Override
-					public boolean hasNext() {
-						return !triggered && current.isValid() && !isFriendly(current, player); // no friendly fire
-					}
+		while (current.isValid() && !isFriendly(current, player)) {
+			destination.add(current);
+			if (!isEmpty(current)) break;
+			current = current.step(step);
+		}
+	}
 
-					@Override
-					public BoardCoordinate next() {
-						var result = current;
-						current = current.step(step);
-						if (!isEmpty(result)) triggered = true;
-						return result;
-					}
-				},
-				limit,
-				Spliterator.SIZED | Spliterator.IMMUTABLE | Spliterator.NONNULL | Spliterator.DISTINCT
-		), false).limit(limit);
+	private Stream<Promotion> promotions(Piece piece, BoardCoordinate position) {
+		if (piece.type() != PAWN)
+			return Stream.empty();
+
+		return Stream.of(1, -1)
+				.map(a -> position.step(piece.owner().pawnDirection(), a))
+				.filter(a -> a.isValid() &&  a.rank() == piece.owner().opponent().homeRank() && isFriendly(a, piece.owner().opponent())) // contains opponent piece
+				.flatMap(a -> Stream.of(Promotion.allPromotions(piece, position, a)));
 	}
 
 	/**
 	 * Gets the hypothetical moves a piece could make if it were of the input type and at the input position,
 	 * regardless of legality
 	 */
-	private Stream<PlayerMove> attacksUsingPiece(Piece piece, BoardCoordinate position) {
-		return switch (piece.type()) {
-			case PAWN -> Stream.of(1, -1)
-					.map(a -> position.step(piece.owner().pawnDirection(), a))
-					.filter(BoardCoordinate::isValid)
-					.filter(a -> isFriendly(a, piece.owner().opponent())) // contains opponent piece
-					.flatMap(a ->
-							a.rank() == piece.owner().opponent().homeRank() ?
-									Stream.<PlayerMove>of(Promotion.allPromotions(piece, position, a)) :
-									Stream.<PlayerMove>of(new RegularMove(piece, position, a))
-					);
+	private List<BoardCoordinate> attackMoveDestinations(Piece piece, BoardCoordinate position) {
+		return (switch (piece.type()) {
+//			case PAWN -> Stream.of(1, -1).unordered()
+//					.map(a -> position.step(piece.owner().pawnDirection(), a))
+//					.filter(a -> a.isValid() && isFriendly(a, piece.owner().opponent())).toList() // contains opponent piece
+//			;
+			case PAWN -> {
+				if (position.rank() + piece.owner().pawnDirection() == piece.owner().opponent().homeRank())
+					yield List.of();
 
-			case KNIGHT -> KNIGHT_STEPS.stream()
-					.map(position::step)
-					.filter(BoardCoordinate::isValid)
-					.filter(a -> !isFriendly(a, piece.owner()))
-					.map(a -> new RegularMove(piece, position, a));
+				var result = new ArrayList<BoardCoordinate>(2);
+				var leftAttackPosition = position.step(piece.owner().pawnDirection(), -1);
+				var rightAttackPosition = position.step(piece.owner().pawnDirection(), 1);
 
-			case KING -> ALL_STEPS.stream()
-					.map(position::step)
-					.filter(BoardCoordinate::isValid)
-					.filter(a -> !isFriendly(a, piece.owner()))
-					.map(a -> new RegularMove(piece, position, a));
+				if (leftAttackPosition.isValid() && isFriendly(leftAttackPosition, piece.owner().opponent())) {
+					result.add(leftAttackPosition);
+				}
 
-			case BISHOP -> DIAGONAL_STEPS.stream()
-					.flatMap(step -> attackingSteps(position, step, piece.owner()))
-					.map(a -> new RegularMove(piece, position, a));
+				if (rightAttackPosition.isValid() && isFriendly(rightAttackPosition, piece.owner().opponent())) {
+					result.add(rightAttackPosition);
+				}
 
-			case ROOK -> ORTHOGONAL_STEPS.stream()
-					.flatMap(step -> attackingSteps(position, step, piece.owner()))
-					.map(a -> new RegularMove(piece, position, a));
+				yield result;
+			}
 
-			case QUEEN -> ALL_STEPS.stream()
-					.flatMap(step -> attackingSteps(position, step, piece.owner()))
-					.map(a -> new RegularMove(piece, position, a));
-		};
+//			case KNIGHT -> KNIGHT_STEPS.stream().unordered()
+//					.map(position::step)
+//					.filter(a -> a.isValid() && !isFriendly(a, piece.owner())).toList();
+			case KNIGHT -> {
+				var result = new ArrayList<BoardCoordinate>();
+
+				for (var step : KNIGHT_STEPS) {
+					var destination = position.step(step);
+					if (destination.isValid() && !isFriendly(destination, piece.owner())) {
+						result.add(destination);
+					}
+				}
+
+				yield result;
+			}
+
+//			case KING -> ALL_STEPS.stream().unordered()
+//					.map(position::step)
+//					.filter(a -> a.isValid() && !isFriendly(a, piece.owner())).toList();
+			case KING -> {
+				var result = new ArrayList<BoardCoordinate>();
+
+				for (var step : ALL_STEPS) {
+					var destination = position.step(step);
+					if (destination.isValid() && !isFriendly(destination, piece.owner())) {
+						result.add(destination);
+					}
+				}
+
+				yield result;
+			}
+
+			case BISHOP -> {
+				var result = new ArrayList<BoardCoordinate>();
+
+				for (var step : DIAGONAL_STEPS) {
+					attackingSteps(result, position, step, piece.owner());
+				}
+
+				yield result;
+			}
+
+			case ROOK -> {
+				var result = new ArrayList<BoardCoordinate>();
+
+				for (var step : ORTHOGONAL_STEPS) {
+					attackingSteps(result, position, step, piece.owner());
+				}
+
+				yield result;
+			}
+
+			case QUEEN -> {
+				var result = new ArrayList<BoardCoordinate>();
+
+				for (var step : ALL_STEPS) {
+					attackingSteps(result, position, step, piece.owner());
+				}
+
+				yield result;
+			}
+		});
 	}
 
 	/**
@@ -481,10 +528,9 @@ public class BoardState {
 	 */
 	private Stream<PlayerMove> findAttacksOnCoordinate(Piece piece, BoardCoordinate position) {
 		Piece enemy = new Piece(piece.owner().opponent(), piece.type());
-		return attacksUsingPiece(enemy, position)
-				.filter(a -> a instanceof RegularMove) // promotions can't become attacks
-				.filter(a -> piece.equals(pieceAt(a.to())))
-				.map(a -> new RegularMove(piece, a.to(), a.from())); // reverse move
+		return attackMoveDestinations(enemy, position).stream()
+				.filter(a -> piece.equals(pieceAt(a)))
+				.map(a -> new RegularMove(piece, a, position)); // reverse move
 	}
 
 	/**
@@ -496,9 +542,11 @@ public class BoardState {
 		Player player = opponent.opponent();
 		for (PieceType pieceType : PieceType.values()) {
 			var piece = new Piece(player, pieceType);
-			if (attacksUsingPiece(piece, position)
-					.anyMatch(move -> new Piece(opponent, move.piece().type()).equals(pieceAt(move.to())))
-			) return true;
+			for (var attackCandidate : attackMoveDestinations(piece, position)) {
+				var pieceAt = pieceAt(attackCandidate);
+				if (new Piece(opponent, pieceType).equals(pieceAt(attackCandidate)))
+					return true;
+			}
 		}
 
 		return false;
@@ -532,7 +580,7 @@ public class BoardState {
 	}
 
 	public Set<PlayerMove> getLegalMoves(Player currentPlayer) {
-		return new HashSet<>(legalMoves.computeIfAbsent(currentPlayer, this::getLegalMoves0));
+		return legalMoves.computeIfAbsent(currentPlayer, this::getLegalMoves0);
 	}
 
 	private Set<PlayerMove> getLegalMoves0(Player currentPlayer) {
@@ -549,20 +597,22 @@ public class BoardState {
 
 		// en passant
 		if (enPassantTarget != null) { // todo: check if en passant is legal without recomputing
-			findAttacksOnCoordinate(new Piece(currentPlayer, PieceType.PAWN), enPassantTarget)
+			findAttacksOnCoordinate(new Piece(currentPlayer, PAWN), enPassantTarget)
 					.map(PlayerMove::from)
 					.map(from -> EnPassant.enPassant(currentPlayer, from, enPassantTarget))
 					.forEach(additionalMoves::add);
 		}
 
-		additionalMoves.stream()
-				.filter(a -> !a.apply(this).isInCheck(currentPlayer))
-				.forEach(legalMoves::add);
+		for (PlayerMove a : additionalMoves) {
+			if (!a.apply(this).isInCheck(currentPlayer)) {
+				legalMoves.add(a);
+			}
+		}
 
-		return legalMoves;
+		return Collections.unmodifiableSet(legalMoves);
 	}
 
-	private static final int MAX_CACHE_SIZE = 1000;
+	private static final int MAX_CACHE_SIZE = 500_000;
 	private static final Cache<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> LEGAL_MOVES_CACHE = new LRUCache<>(MAX_CACHE_SIZE);
 
 	private Set<PlayerMove> unprocessedLegalMoves(Player currentPlayer) {
@@ -578,12 +628,17 @@ public class BoardState {
 		for (PieceType pieceType : PieceType.values()) {
 			var piece = new Piece(currentPlayer, pieceType);
 
-			for (BoardCoordinate location : board.allOf(piece))
-				attacksUsingPiece(piece, location).forEach(legalMoves::add);
+			for (BoardCoordinate location : board.allOf(piece)) {
+//				regularMoveDestinations(piece, location).map(coord -> new RegularMove(piece, location, coord)).forEach(legalMoves::add);
+				for (var destination : attackMoveDestinations(piece, location)) {
+					legalMoves.add(new RegularMove(piece, location, destination));
+				}
+				promotions(piece, location).forEach(legalMoves::add);
+			}
 		}
 
 		// pawn pushes
-		var pawn = new Piece(currentPlayer, PieceType.PAWN);
+		var pawn = new Piece(currentPlayer, PAWN);
 		for (BoardCoordinate position : board.allOf(pawn)) {
 			BoardCoordinate singleStepFrom = position.step(currentPlayer.pawnDirection(), 0);
 			if (isEmpty(singleStepFrom)) {
@@ -634,7 +689,7 @@ public class BoardState {
 	 */
 	public PlayerMove fromNotation(String text) {
 		ParsedQueryParams params = parseAlgebraicNotation(text);
-		Set<PlayerMove> candidates = getLegalMoves(currentTurn);
+		Set<PlayerMove> candidates = new HashSet<>(getLegalMoves(currentTurn));
 
 		candidates.removeIf(candidate -> {
 			MoveRecord record = new MoveRecord(this, candidate); // todo: implement
@@ -685,7 +740,7 @@ public class BoardState {
 
 		PieceType piece = switch (matcher.group(4)) {
 			case String s -> PieceType.fromChar(s.charAt(0));
-			case null -> (longCastle || shortCastle) ? null : PieceType.PAWN;
+			case null -> (longCastle || shortCastle) ? null : PAWN;
 		};
 
 		OptionalInt rankContext = switch (matcher.group(6)) {
