@@ -36,8 +36,9 @@ public class LimitedCache<K, V> {
 	}
 
 	public V computeIfAbsent(K key, Function<K, V> mappingFunction) {
+		boolean contains = data.containsKey(key); // non-critical race condition
 		var result = data.computeIfAbsent(key, mappingFunction);
-		if (result == null) { // added something new
+		if (!contains) { // added something new
 			lastAdded.addLast(key);
 			trimOldest();
 		}
