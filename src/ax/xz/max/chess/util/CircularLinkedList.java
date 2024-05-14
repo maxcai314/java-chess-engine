@@ -24,6 +24,8 @@ public class CircularLinkedList<T> {
 
 			prev.next = next;
 			next.prev = prev;
+
+			prev = next = null;
 		}
 
 		public T data() {
