@@ -1,9 +1,11 @@
 package ax.xz.max.chess;
 
 import ax.xz.max.chess.moves.*;
-import ax.xz.max.chess.util.*;
+import ax.xz.max.chess.util.Cache;
+import ax.xz.max.chess.util.LRUCache;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -256,7 +258,7 @@ public class BoardState {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(board, currentTurn,  whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
+		return Objects.hash(board, currentTurn, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
 	}
 
 	@Override
@@ -426,7 +428,7 @@ public class BoardState {
 
 		return Stream.of(1, -1)
 				.map(a -> position.step(piece.owner().pawnDirection(), a))
-				.filter(a -> a.isValid() &&  a.rank() == piece.owner().opponent().homeRank() && isFriendly(a, piece.owner().opponent())) // contains opponent piece
+				.filter(a -> a.isValid() && a.rank() == piece.owner().opponent().homeRank() && isFriendly(a, piece.owner().opponent())) // contains opponent piece
 				.flatMap(a -> Stream.of(Promotion.allPromotions(piece, position, a)));
 	}
 
@@ -628,14 +630,44 @@ public class BoardState {
 		return Collections.unmodifiableSet(legalMoves);
 	}
 
-	private static final int MAX_CACHE_SIZE = 500_000/64;
-	private static final ThreadLocal<Cache<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>>> LEGAL_MOVES_CACHE = ThreadLocal.withInitial(() -> new LRUCache<>(MAX_CACHE_SIZE));
+	private static final int MAX_CACHE_SIZE = 500_000/2;
+	private static final Cache<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> LEGAL_MOVES_CACHE = new LRUCache<>(MAX_CACHE_SIZE);
+	private static final ThreadLocal<Cache<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>>> LEGAL_MOVES_TCACHE = ThreadLocal.withInitial(() -> new LRUCache<>(500));
+
+
+//	public static final AtomicInteger total = new AtomicInteger();
+//	public static final AtomicInteger cacheMisses = new AtomicInteger();
+
 
 	private Set<PlayerMove> unprocessedLegalMoves(Player currentPlayer) {
-		return new HashSet<>(
-				LEGAL_MOVES_CACHE.get().computeIfAbsent(board, a -> new EnumMap<>(Player.class))
-						.computeIfAbsent(currentPlayer, this::unprocessedLegalMoves0)
-		);
+//		total.getAndIncrement();
+
+		var tc = LEGAL_MOVES_TCACHE.get();
+		var tcBoard = tc.get(board);
+
+		if (tcBoard != null) {
+			var moves = tcBoard.get(currentPlayer);
+			if (moves != null) {
+				return moves;
+			}
+		}
+
+
+		var cBoard = LEGAL_MOVES_CACHE.computeIfAbsent(board, a -> new EnumMap<>(Player.class));
+		tc.put(board, cBoard);
+
+		var playerMoves = cBoard.computeIfAbsent(currentPlayer, k -> {
+			var result = unprocessedLegalMoves0(k);
+//			cacheMisses.getAndIncrement();
+			return result;
+		});
+
+//		if (Math.random() < 0.00005) {
+//			System.out.printf("Cache hits: %d, cache misses: %d%n", total.get() - cacheMisses.get(), cacheMisses.get());
+//			System.out.printf("Hit ratio: %f%n", 1-(1.*cacheMisses.get() / total.get()));
+//		}
+
+		return playerMoves;
 	}
 
 	private Set<PlayerMove> unprocessedLegalMoves0(Player currentPlayer) {
@@ -710,8 +742,8 @@ public class BoardState {
 		candidates.removeIf(candidate -> {
 			MoveRecord record = new MoveRecord(this, candidate); // todo: implement
 			return record.isCheck() != (params.isCheck())
-					|| record.isCapture() != params.isCapture()
-					|| record.isMate() != params.isMate();
+				   || record.isCapture() != params.isCapture()
+				   || record.isMate() != params.isMate();
 		});
 
 		if (params.shortCastle()) {

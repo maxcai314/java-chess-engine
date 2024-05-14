@@ -61,20 +61,8 @@ public class LRUCache<K, V> implements Cache<K, V> {
 		}
 	}
 
-	private static final AtomicInteger cacheHits = new AtomicInteger();
-	private static final AtomicInteger cacheMisses = new AtomicInteger();
-
 	public V computeIfAbsent(K key, Function<K, V> mappingFunction) {
 		var result = get(key);
-
-		if (result == null) cacheMisses.incrementAndGet();
-		else cacheHits.incrementAndGet();
-		if (Math.random() < 0.00005) {
-			System.out.println("Cache hits: " + cacheHits.get() + ", cache misses: " + cacheMisses.get());
-			double total = cacheHits.get() + cacheMisses.get();
-			System.out.println("Hit ratio: " + (cacheHits.get() / total));
-			System.out.println("Cache size: " + data.size());
-		}
 
 		if (result != null) return result;
 
