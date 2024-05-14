@@ -7,7 +7,6 @@ import java.util.stream.Stream;
 public class BoardStateInternal {
 	private static final Piece[] PIECES;
 	private final long[] state;
-	private final long allPieces;
 
 	static {
 		var piecesWhite = Arrays.stream(PieceType.values()).map(type -> new Piece(Player.WHITE, type));
@@ -25,7 +24,10 @@ public class BoardStateInternal {
 			throw new IllegalArgumentException("BoardStateInternal must have the same number of pieces as PIECES");
 		}
 		this.state = state;
-	    this.allPieces = Arrays.stream(state).reduce(0L, (a, b) -> a | b);
+	}
+
+	private long allBitBoard() {
+		return Arrays.stream(state).reduce(0L, (a, b) -> a | b);
 	}
 
 	private static boolean bitAt(long l, int rank, int file) {
@@ -118,7 +120,7 @@ public class BoardStateInternal {
 
 	public Iterable<BoardCoordinate> allPieces() {
 		return () -> new Iterator<>() {
-			private long remaining = allPieces;
+			private long remaining = allBitBoard();
 
 			@Override
 			public boolean hasNext() {
