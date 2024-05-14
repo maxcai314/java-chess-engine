@@ -8,6 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * Represents the state of a chess board.
@@ -402,6 +403,36 @@ public class BoardState {
 			new BoardCoordinate(-1, -2)
 	);
 
+	private boolean isFriendly(BoardCoordinate position, Player player) {
+		var piece = pieceAt(position);
+		return piece != null && piece.owner() == player;
+	}
+
+	private Stream<BoardCoordinate> attackingSteps(BoardCoordinate startPosition, BoardCoordinate step, Player player) {
+		int limit = BoardCoordinate.numPossibleSteps(startPosition, step);
+		return StreamSupport.<BoardCoordinate>stream(Spliterators.spliterator(
+				new Iterator<>() {
+					BoardCoordinate current = startPosition.step(step);
+					boolean triggered = false;
+
+					@Override
+					public boolean hasNext() {
+						return !triggered && current.isValid() && !isFriendly(current, player); // no friendly fire
+					}
+
+					@Override
+					public BoardCoordinate next() {
+						var result = current;
+						current = current.step(step);
+						if (!isEmpty(result)) triggered = true;
+						return result;
+					}
+				},
+				limit,
+				Spliterator.SIZED | Spliterator.IMMUTABLE | Spliterator.NONNULL | Spliterator.DISTINCT
+		), false).limit(limit);
+	}
+
 	/**
 	 * Gets the hypothetical moves a piece could make if it were of the input type and at the input position,
 	 * regardless of legality
@@ -411,61 +442,36 @@ public class BoardState {
 			case PAWN -> Stream.of(1, -1)
 					.map(a -> position.step(piece.owner().pawnDirection(), a))
 					.filter(BoardCoordinate::isValid)
-					.filter(a -> !isEmpty(a) && pieceAt(a).owner() != piece.owner())
+					.filter(a -> isFriendly(a, piece.owner().opponent())) // contains opponent piece
 					.flatMap(a ->
 							a.rank() == piece.owner().opponent().homeRank() ?
-									Stream.of(Promotion.allPromotions(piece, position, a)) :
-									Stream.of(new RegularMove(piece, position, a))
-					)
-					.map(PlayerMove.class::cast);
+									Stream.<PlayerMove>of(Promotion.allPromotions(piece, position, a)) :
+									Stream.<PlayerMove>of(new RegularMove(piece, position, a))
+					);
 
 			case KNIGHT -> KNIGHT_STEPS.stream()
 					.map(position::step)
 					.filter(BoardCoordinate::isValid)
-					.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
-					.map(a -> (PlayerMove) new RegularMove(piece, position, a));
+					.filter(a -> !isFriendly(a, piece.owner()))
+					.map(a -> new RegularMove(piece, position, a));
 
 			case KING -> ALL_STEPS.stream()
 					.map(position::step)
 					.filter(BoardCoordinate::isValid)
-					.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
-					.map(a -> (PlayerMove) new RegularMove(piece, position, a));
+					.filter(a -> !isFriendly(a, piece.owner()))
+					.map(a -> new RegularMove(piece, position, a));
 
 			case BISHOP -> DIAGONAL_STEPS.stream()
-					.flatMap(step -> {
-						ArrayList<BoardCoordinate> candidates = new ArrayList<>();
-						for (BoardCoordinate candidate = position.step(step); candidate.isValid(); candidate = candidate.step(step)) {
-							candidates.add(candidate);
-							if (!isEmpty(candidate)) break;
-						}
-						return candidates.stream();
-					})
-					.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
-					.map(a -> (PlayerMove) new RegularMove(piece, position, a));
+					.flatMap(step -> attackingSteps(position, step, piece.owner()))
+					.map(a -> new RegularMove(piece, position, a));
 
 			case ROOK -> ORTHOGONAL_STEPS.stream()
-					.flatMap(step -> {
-						ArrayList<BoardCoordinate> candidates = new ArrayList<>();
-						for (BoardCoordinate candidate = position.step(step); candidate.isValid(); candidate = candidate.step(step)) {
-							candidates.add(candidate);
-							if (!isEmpty(candidate)) break;
-						}
-						return candidates.stream();
-					})
-					.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
-					.map(a -> (PlayerMove) new RegularMove(piece, position, a));
+					.flatMap(step -> attackingSteps(position, step, piece.owner()))
+					.map(a -> new RegularMove(piece, position, a));
 
 			case QUEEN -> ALL_STEPS.stream()
-					.flatMap(step -> {
-						ArrayList<BoardCoordinate> candidates = new ArrayList<>();
-						for (BoardCoordinate candidate = position.step(step); candidate.isValid(); candidate = candidate.step(step)) {
-							candidates.add(candidate);
-							if (!isEmpty(candidate)) break;
-						}
-						return candidates.stream();
-					})
-					.filter(a -> isEmpty(a) || pieceAt(a).owner() != piece.owner())
-					.map(a -> (PlayerMove) new RegularMove(piece, position, a));
+					.flatMap(step -> attackingSteps(position, step, piece.owner()))
+					.map(a -> new RegularMove(piece, position, a));
 		};
 	}
 
@@ -544,7 +550,7 @@ public class BoardState {
 			additionalMoves.add(longCastle);
 
 		// en passant
-		if (enPassantTarget != null) {
+		if (enPassantTarget != null) { // todo: check if en passant is legal without recomputing
 			findAttacksOnCoordinate(new Piece(currentPlayer, PieceType.PAWN), enPassantTarget)
 					.map(PlayerMove::from)
 					.map(from -> EnPassant.enPassant(currentPlayer, from, enPassantTarget))
@@ -558,12 +564,12 @@ public class BoardState {
 		return legalMoves;
 	}
 
-	private static final int MAX_CACHE_SIZE = 500_000;
-	private static final LimitedCache<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> legalMovesCache = new LimitedCache<>(MAX_CACHE_SIZE);
+	private static final int MAX_CACHE_SIZE = 1_000_000;
+	private static final LimitedCache<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> LEGAL_MOVES_CACHE = new LimitedCache<>(MAX_CACHE_SIZE);
 
 	private Set<PlayerMove> unprocessedLegalMoves(Player currentPlayer) {
 		return new HashSet<>(
-				legalMovesCache.computeIfAbsent(board, a -> new EnumMap<>(Player.class))
+				LEGAL_MOVES_CACHE.computeIfAbsent(board, a -> new EnumMap<>(Player.class))
 						.computeIfAbsent(currentPlayer, this::unprocessedLegalMoves0)
 		);
 	}
@@ -667,14 +673,13 @@ public class BoardState {
 		return candidates.iterator().next();
 	}
 
-	private static final String ALGEBRAIC_REGEX_PATTERN = "(([Oo0]-[Oo0](-[Oo0])?)|([KQRBN])?([a-h])??([1-8])??(x)?([a-h][1-8])(=[QRBN])?)([+#])?";
+	private static final Pattern ALGEBRAIC_REGEX_PATTERN = Pattern.compile("(([Oo0]-[Oo0](-[Oo0])?)|([KQRBN])?([a-h])??([1-8])??(x)?([a-h][1-8])(=[QRBN])?)([+#])?");
 
 	/**
 	 * Parses algebraic notation into a {@link ParsedQueryParams} object.
 	 */
 	private static ParsedQueryParams parseAlgebraicNotation(String text) {
-		Pattern pattern = Pattern.compile(ALGEBRAIC_REGEX_PATTERN);
-		Matcher matcher = pattern.matcher(text);
+		Matcher matcher = ALGEBRAIC_REGEX_PATTERN.matcher(text);
 		if (!matcher.matches()) throw new IllegalArgumentException("Invalid algebraic notation: " + text);
 
 		boolean longCastle = matcher.group(3) != null;

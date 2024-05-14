@@ -29,4 +29,18 @@ public record BoardCoordinate(
 	public boolean isValid() {
 		return rank >= 0 && rank < 8 && file >= 0 && file < 8;
 	}
+
+	public static int numPossibleSteps(BoardCoordinate start, BoardCoordinate step) {
+		if (!start.isValid()) return 0;
+
+		int verticalRemaining = Integer.MAX_VALUE;
+		if (step.rank() > 0) verticalRemaining = (7 - start.rank()) / step.rank();
+		else if (step.rank() < 0) verticalRemaining = start.rank() / -step.rank();
+
+		int horizontalRemaining = Integer.MAX_VALUE;
+		if (step.file() > 0) horizontalRemaining = (7 - start.file()) / step.file();
+		else if (step.file() < 0) horizontalRemaining = start.file() / -step.file();
+
+		return Math.min(verticalRemaining, horizontalRemaining);
+	}
 }
