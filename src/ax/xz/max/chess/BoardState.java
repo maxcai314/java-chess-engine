@@ -26,7 +26,9 @@ public class BoardState {
 	private final boolean whiteLongCastle;
 	private final boolean blackShortCastle;
 	private final boolean blackLongCastle;
-	private final EnumMap<Player, Boolean> isInCheck = new EnumMap<>(Player.class);
+
+	private volatile boolean whiteCheck, blackCheck;
+	private volatile boolean whiteCheckComputed, blackCheckComputed;
 
 	public BoardState(
 			BoardStateInternal board,
@@ -254,8 +256,7 @@ public class BoardState {
 
 	@Override
 	public int hashCode() {
-		String[] words = toFEN().split("\\s+"); // hash objects instead of FEN
-		return Objects.hash(words[0], words[1], words[2]); // use first 3 words
+		return Objects.hash(board, currentTurn,  whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
 	}
 
 	@Override
@@ -368,21 +369,21 @@ public class BoardState {
 		return new BoardState(realBoard, currentPlayer, enPassantTarget, halfMoves, numMoves, whiteShortCastle, whiteLongCastle, blackShortCastle, blackLongCastle);
 	}
 
-	private static final Set<BoardCoordinate> DIAGONAL_STEPS = Set.of(
+	private static final BoardCoordinate[] DIAGONAL_STEPS = {
 			new BoardCoordinate(1, 1),
 			new BoardCoordinate(1, -1),
 			new BoardCoordinate(-1, 1),
 			new BoardCoordinate(-1, -1)
-	);
+	};
 
-	private static final Set<BoardCoordinate> ORTHOGONAL_STEPS = Set.of(
+	private static final BoardCoordinate[] ORTHOGONAL_STEPS = {
 			new BoardCoordinate(1, 0),
 			new BoardCoordinate(0, 1),
 			new BoardCoordinate(-1, 0),
 			new BoardCoordinate(0, -1)
-	);
+	};
 
-	private static final Set<BoardCoordinate> ALL_STEPS = Set.of(
+	private static final BoardCoordinate[] ALL_STEPS = {
 			new BoardCoordinate(1, 1),
 			new BoardCoordinate(1, 0),
 			new BoardCoordinate(1, -1),
@@ -391,9 +392,9 @@ public class BoardState {
 			new BoardCoordinate(-1, 1),
 			new BoardCoordinate(-1, 0),
 			new BoardCoordinate(-1, -1)
-	);
+	};
 
-	private static final Set<BoardCoordinate> KNIGHT_STEPS = Set.of(
+	private static final BoardCoordinate[] KNIGHT_STEPS = {
 			new BoardCoordinate(2, 1),
 			new BoardCoordinate(2, -1),
 			new BoardCoordinate(-2, 1),
@@ -402,7 +403,7 @@ public class BoardState {
 			new BoardCoordinate(1, -2),
 			new BoardCoordinate(-1, 2),
 			new BoardCoordinate(-1, -2)
-	);
+	};
 
 	private boolean isFriendly(BoardCoordinate position, Player player) {
 		var piece = pieceAt(position);
@@ -553,7 +554,22 @@ public class BoardState {
 	}
 
 	public boolean isInCheck(Player player) {
-		return isInCheck.computeIfAbsent(player, this::isInCheck0);
+		return switch (player) {
+			case WHITE -> {
+				if (!whiteCheckComputed) {
+					whiteCheck = isInCheck0(player);
+					whiteCheckComputed = true;
+				}
+				yield whiteCheck;
+			}
+			case BLACK -> {
+				if (!blackCheckComputed) {
+					blackCheck = isInCheck0(player);
+					blackCheckComputed = true;
+				}
+				yield blackCheck;
+			}
+		};
 	}
 
 	private boolean isInCheck0(Player player) {
@@ -612,12 +628,12 @@ public class BoardState {
 		return Collections.unmodifiableSet(legalMoves);
 	}
 
-	private static final int MAX_CACHE_SIZE = 500_000;
-	private static final Cache<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> LEGAL_MOVES_CACHE = new LRUCache<>(MAX_CACHE_SIZE);
+	private static final int MAX_CACHE_SIZE = 500_000/64;
+	private static final ThreadLocal<Cache<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>>> LEGAL_MOVES_CACHE = ThreadLocal.withInitial(() -> new LRUCache<>(MAX_CACHE_SIZE));
 
 	private Set<PlayerMove> unprocessedLegalMoves(Player currentPlayer) {
 		return new HashSet<>(
-				LEGAL_MOVES_CACHE.computeIfAbsent(board, a -> new EnumMap<>(Player.class))
+				LEGAL_MOVES_CACHE.get().computeIfAbsent(board, a -> new EnumMap<>(Player.class))
 						.computeIfAbsent(currentPlayer, this::unprocessedLegalMoves0)
 		);
 	}

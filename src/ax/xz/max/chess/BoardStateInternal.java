@@ -31,7 +31,7 @@ public class BoardStateInternal {
 	}
 
 	private static boolean bitAt(long l, int rank, int file) {
-		return (l & (1L << (rank * 8 + file))) != 0;
+		return (l & (1L << ((rank << 3L) + file))) != 0L;
 	}
 
 	public int numPieces() {
