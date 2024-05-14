@@ -36,8 +36,8 @@ public class LimitedCache<K, V> implements Cache<K, V> {
 		return result;
 	}
 
-	private final AtomicInteger cacheHits = new AtomicInteger();
-	private final AtomicInteger cacheMisses = new AtomicInteger();
+//	private final AtomicInteger cacheHits = new AtomicInteger();
+//	private final AtomicInteger cacheMisses = new AtomicInteger();
 
 	public V computeIfAbsent(K key, Function<K, V> mappingFunction) {
 		boolean contains = data.containsKey(key); // non-critical race condition
@@ -46,17 +46,17 @@ public class LimitedCache<K, V> implements Cache<K, V> {
 			lastAdded.addLast(key);
 			trimOldest();
 		}
-		if (contains) {
-			cacheHits.incrementAndGet();
-		} else {
-			cacheMisses.incrementAndGet();
-		}
-		if (Math.random() < 0.00005) {
-			System.out.println("Cache hits: " + cacheHits.get() + ", cache misses: " + cacheMisses.get());
-			double total = cacheHits.get() + cacheMisses.get();
-			System.out.println("Hit ratio: " + (cacheHits.get() / total));
-			System.out.println("Cache size: " + data.size());
-		}
+//		if (contains) {
+//			cacheHits.incrementAndGet();
+//		} else {
+//			cacheMisses.incrementAndGet();
+//		}
+//		if (Math.random() < 0.00005) {
+//			System.out.println("Cache hits: " + cacheHits.get() + ", cache misses: " + cacheMisses.get());
+//			double total = cacheHits.get() + cacheMisses.get();
+//			System.out.println("Hit ratio: " + (cacheHits.get() / total));
+//			System.out.println("Cache size: " + data.size());
+//		}
 		return result;
 	}
 
