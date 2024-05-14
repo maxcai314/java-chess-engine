@@ -124,11 +124,15 @@ public class PieceMapEvaluator implements BoardEvaluator {
 		};
 	}
 
+	private static final long COLUMN_MASK = 0b00000001_00000001_00000001_00000001_00000001_00000001_00000001_00000001L;
+
 	private static int[] numPawnsPerFile(Board board, Player player) {
 		Piece pawn = new Piece(player, PieceType.PAWN);
+		long bitboard = board.boardState().board().bitBoardFor(pawn);
 		var result = new int[8];
-		for (BoardCoordinate position : board.boardState().board().allOf(pawn)) {
-			result[position.file()]++;
+		for (int i=0; i<8; i++) {
+			long mask = COLUMN_MASK << i;
+			result[i] = Long.bitCount(bitboard & mask);
 		}
 		return result;
 	}

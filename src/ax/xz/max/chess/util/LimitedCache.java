@@ -2,9 +2,10 @@ package ax.xz.max.chess.util;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-public class LimitedCache<K, V> {
+public class LimitedCache<K, V> implements Cache<K, V> {
 	private final int maxEntries;
 	private final ConcurrentHashMap<K, V> data;
 	private final ConcurrentLinkedDeque<K> lastAdded = new ConcurrentLinkedDeque<>();
@@ -35,6 +36,9 @@ public class LimitedCache<K, V> {
 		return result;
 	}
 
+//	private final AtomicInteger cacheHits = new AtomicInteger();
+//	private final AtomicInteger cacheMisses = new AtomicInteger();
+
 	public V computeIfAbsent(K key, Function<K, V> mappingFunction) {
 		boolean contains = data.containsKey(key); // non-critical race condition
 		var result = data.computeIfAbsent(key, mappingFunction);
@@ -42,6 +46,16 @@ public class LimitedCache<K, V> {
 			lastAdded.addLast(key);
 			trimOldest();
 		}
+//		if (contains) {
+//			cacheHits.incrementAndGet();
+//		} else {
+//			cacheMisses.incrementAndGet();
+//		}
+//		if (Math.random() < 0.00005) {
+//			System.out.println("Cache hits: " + cacheHits.get() + ", cache misses: " + cacheMisses.get());
+//			double total = cacheHits.get() + cacheMisses.get();
+//			System.out.println("Hit ratio: " + (cacheHits.get() / total));
+//		}
 		return result;
 	}
 

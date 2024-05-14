@@ -1,7 +1,7 @@
 package ax.xz.max.chess;
 
 import ax.xz.max.chess.moves.*;
-import ax.xz.max.chess.util.LimitedCache;
+import ax.xz.max.chess.util.*;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -494,9 +494,14 @@ public class BoardState {
 	private boolean isDefendedBy(Player opponent, BoardCoordinate position) {
 		// strategy: replace the position square with a piece of any type, and see if it attacks an opponent piece of the same type
 		Player player = opponent.opponent();
-		return Stream.of(PieceType.values())
-				.flatMap(pieceType -> attacksUsingPiece(new Piece(player, pieceType), position))
-				.anyMatch(move -> new Piece(opponent, move.piece().type()).equals(pieceAt(move.to())));
+		for (PieceType pieceType : PieceType.values()) {
+			var piece = new Piece(player, pieceType);
+			if (attacksUsingPiece(piece, position)
+					.anyMatch(move -> new Piece(opponent, move.piece().type()).equals(pieceAt(move.to())))
+			) return true;
+		}
+
+		return false;
 	}
 
 	public boolean isInCheck(Player player) {
@@ -504,14 +509,7 @@ public class BoardState {
 	}
 
 	private boolean isInCheck0(Player player) {
-		// find king
-		int kingIndex = Long.numberOfTrailingZeros(board.state()[
-				switch (player) {
-					case WHITE -> 5;
-					case BLACK -> 11;
-				}]);
-		if (kingIndex == 64) throw new IllegalStateException("King not found");
-		BoardCoordinate kingLocation = new BoardCoordinate(kingIndex / 8, kingIndex % 8);
+		BoardCoordinate kingLocation = board.findKing(player);
 		return isDefendedBy(player.opponent(), kingLocation);
 	}
 
@@ -564,8 +562,8 @@ public class BoardState {
 		return legalMoves;
 	}
 
-	private static final int MAX_CACHE_SIZE = 1_000_000;
-	private static final LimitedCache<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> LEGAL_MOVES_CACHE = new LimitedCache<>(MAX_CACHE_SIZE);
+	private static final int MAX_CACHE_SIZE = 500_000;
+	private static final Cache<BoardStateInternal, EnumMap<Player, Set<PlayerMove>>> LEGAL_MOVES_CACHE = new LRUCache<>(MAX_CACHE_SIZE);
 
 	private Set<PlayerMove> unprocessedLegalMoves(Player currentPlayer) {
 		return new HashSet<>(
