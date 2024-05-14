@@ -16,6 +16,7 @@ public class PieceMapEvaluator implements BoardEvaluator {
 			case DRAW -> 0;
 			default -> materialReward(board)
 					+ mobilityReward(board)
+					+ endgameReward(board)
 					- doubledPawnPenalty(board)
 					- blockedPawnPenalty(board)
 					- isolatedPawnPenalty(board);
@@ -216,6 +217,22 @@ public class PieceMapEvaluator implements BoardEvaluator {
 			case QUEEN -> 0.001;
 			default -> 0;
 		};
+		return total;
+	}
+
+	private static double endgameReward(Board board) {
+		if (board.boardState().numExpensivePieces() > 5) return 0;
+
+		double total = 0;
+
+		Piece whitePawn = new Piece(Player.WHITE, PieceType.PAWN);
+		for (var position : board.boardState().board().allOf(whitePawn))
+			total += 0.15 * position.rank();
+
+		Piece blackPawn = new Piece(Player.BLACK, PieceType.PAWN);
+		for (var position : board.boardState().board().allOf(blackPawn))
+			total -= 0.15 * (7 - position.rank());
+
 		return total;
 	}
 }

@@ -852,4 +852,8 @@ public class BoardState {
 	public int numPieces() {
 		return board.numPieces();
 	}
+
+	public int numExpensivePieces() {
+		return board.numExpensivePieces();
+	}
 }

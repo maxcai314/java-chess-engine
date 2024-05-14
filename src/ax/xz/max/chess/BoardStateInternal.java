@@ -38,6 +38,14 @@ public class BoardStateInternal {
 		return (int) Arrays.stream(state).map(Long::bitCount).sum();
 	}
 
+	public int numExpensivePieces() {
+		return (int) Stream.of(PieceType.QUEEN, PieceType.ROOK, PieceType.BISHOP, PieceType.KNIGHT)
+				.flatMap(piece -> Stream.of(Player.WHITE, Player.BLACK).map(player -> new Piece(player, piece)))
+				.mapToLong(this::bitBoardFor)
+				.map(Long::bitCount)
+				.sum();
+	}
+
 	public Piece get(int rank, int file) {
 		for (int i = 0; i < PIECES.length; i++) {
 			if (bitAt(state[i], rank, file)) {
