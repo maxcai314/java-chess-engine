@@ -1,7 +1,7 @@
 package ax.xz.max.chess.util;
 
 public class CircularLinkedList<T> {
-	private final Node sentinel ;
+	private final Node sentinel;
 
 	public CircularLinkedList() {
 		this.sentinel = new Node(null);
@@ -24,6 +24,8 @@ public class CircularLinkedList<T> {
 
 			prev.next = next;
 			next.prev = prev;
+
+			prev = next = null;
 		}
 
 		public T data() {
