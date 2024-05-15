@@ -90,7 +90,7 @@ public class BotServer {
 
 		System.out.println("Accepted challenge from " + challenger);
 
-		String greeting = challengeEvent.isRematch() ? "Again " + challenger : "Good luck " + challenger;
+		String greeting = challengeEvent.isRematch() ? "Again " + challenger.user().name() : "Good luck " + challenger.user().name();
 		client.bot().chat(challenge.id(), greeting);
 	}
 
@@ -105,41 +105,53 @@ public class BotServer {
 		Board startBoard = Board.fromFEN(game.fen());
 
 		AtomicBoolean gameEnded = new AtomicBoolean(false);
+		if (game.isMyTurn()) {
+			var move = movePicker.chooseNextMove(startBoard);
+			client.bot().move(game.gameId(), move.toUCI());
+		}
+
 		while (!gameEnded.get()) {
 			client.bot().connectToGame(game.gameId()).stream()
 					.forEach(event -> { switch (event) {
 						case GameStateEvent.Chat chat -> System.out.println("(Chat) " + chat.username() + ": " + chat.text());
 						case GameStateEvent.OpponentGone _ -> System.out.println("Opponent gone");
-						case GameStateEvent.Full _ -> {
-							System.out.println("Game over");
-							gameEnded.set(true);
-						}
-						case GameStateEvent.State state -> {
-							var moveList = state.moveList();
-							Board board = startBoard.copy();
-							for (String move : moveList) {
-								board.makeMove(board.fromUCI(move));
-							}
-
-							var toMove = switch (board.currentTurn()) {
-								case WHITE -> Color.white; // cross-library enums
-								case BLACK -> Color.black;
-							};
-
-							if (state.drawOffer() instanceof Some(var drawOffer)) {
-								System.out.println("Draw offer from " + drawOffer);
-								client.bot().chat(game.gameId(), "I accept draws");
-								client.bot().handleDrawOffer(game.gameId(), true); // accept draws
-							}
-
-							if (toMove == game.color()) {
-								var move = movePicker.chooseNextMove(board);
-								client.bot().move(game.gameId(), move.toUCI());
-							}
-						}
+						case GameStateEvent.Full full -> gameEnded.set(handleGameState(startBoard, game.gameId(), game, full.state()));
+						case GameStateEvent.State state -> gameEnded.set(handleGameState(startBoard, game.gameId(), game, state));
 					}});
 			Thread.sleep(100);
 		}
 
+	}
+
+	/** returns whether the game is finished */
+	private static boolean handleGameState(Board startBoard, String gameID, GameInfo game, GameStateEvent.State state) {
+		if (state.status().ordinal() > Status.started.ordinal()) {
+			System.out.println("Game over");
+			return true;
+		}
+
+		var moveList = state.moveList();
+		Board board = startBoard.copy();
+		for (String move : moveList) {
+			board.makeMove(board.fromUCI(move));
+		}
+
+		var toMove = switch (board.currentTurn()) {
+			case WHITE -> Color.white; // cross-library enums
+			case BLACK -> Color.black;
+		};
+
+		if (state.drawOffer() instanceof Some(var drawOffer)) {
+			System.out.println("Draw offer from " + drawOffer);
+			client.bot().chat(game.gameId(), "I accept draws");
+			client.bot().handleDrawOffer(game.gameId(), true); // accept draws
+		}
+
+		if (toMove == game.color()) {
+			var move = movePicker.chooseNextMove(board);
+			client.bot().move(game.gameId(), move.toUCI());
+		}
+
+		return false;
 	}
 }
