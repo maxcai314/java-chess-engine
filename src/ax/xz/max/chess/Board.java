@@ -102,6 +102,10 @@ public class Board {
 		return boardState().fromNotation(notation);
 	}
 
+	public PlayerMove fromUCI(String uci) {
+		return boardState().fromUCI(uci);
+	}
+
 	public Set<PlayerMove> getLegalMoves() {
 		return boardState().getLegalMoves();
 	}

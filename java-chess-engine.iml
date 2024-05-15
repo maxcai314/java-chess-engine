@@ -43,5 +43,6 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" name="io.github.tors42.chariot" level="project" />
   </component>
 </module>

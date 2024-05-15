@@ -708,6 +708,28 @@ public class BoardState {
 				.collect(Collectors.toUnmodifiableSet());
 	}
 
+	public PlayerMove fromUCI(String text) {
+		if (text.length() != 4 && text.length() != 5)
+			throw new IllegalArgumentException("Invalid UCI move: " + text);
+
+		Set<PlayerMove> candidates = new HashSet<>(getLegalMoves(currentTurn));
+		candidates.removeIf(candidate -> !candidate.from().equals(BoardCoordinate.fromString(text.substring(0, 2))));
+		candidates.removeIf(candidate -> !candidate.to().equals(BoardCoordinate.fromString(text.substring(2, 4))));
+
+		if (text.length() == 5) {
+			PieceType promotionPiece = PieceType.fromChar(Character.toUpperCase(text.charAt(4)));
+			candidates.removeIf(candidate -> !(candidate instanceof Promotion promotionMove) || promotionMove.newPiece().type() != promotionPiece);
+		} else {
+			candidates.removeIf(candidate -> candidate instanceof Promotion);
+		}
+
+		if (candidates.isEmpty()) throw new IllegalArgumentException("No moves found for " + text);
+		if (candidates.size() > 1)
+			throw new IllegalArgumentException("Move not specific enough: " + candidates.size() + " candidates found for move " + text);
+
+		return candidates.iterator().next();
+	}
+
 	private record ParsedQueryParams(
 			boolean shortCastle,
 			boolean longCastle,

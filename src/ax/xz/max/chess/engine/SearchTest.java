@@ -23,8 +23,8 @@ public class SearchTest {
 		Board board = new Board();
 
 		var evaluator = new PieceMapEvaluator();
-		var blackAlgorithm = new FasterAlphaBetaSearch(evaluator, 6);
-		var whiteAlgorithm = new FasterAlphaBetaSearch(evaluator, 6);
+		var blackAlgorithm = new FasterAlphaBetaSearch(evaluator, 7);
+		var whiteAlgorithm = new FasterAlphaBetaSearch(evaluator, 7);
 //		var whiteAlgorithm = new HumanInput();
 //		var blackAlgorithm = new HumanInput();
 
