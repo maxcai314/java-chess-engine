@@ -7,6 +7,8 @@ import ax.xz.max.chess.engine.evaluators.PieceMapEvaluator;
 import chariot.ClientAuth;
 import chariot.model.*;
 
+import java.time.Duration;
+
 public class LichessBotServer {
 	private final ClientAuth client;
 	private final UserAuth profile;
@@ -61,19 +63,8 @@ public class LichessBotServer {
 
 	private void playGame(GameInfo game) {
 		System.out.println("Playing game " + game);
-		BoardEvaluator heuristic = new PieceMapEvaluator();
-		int searchDepth = switch (game.time().speed()) {
-			case ultraBullet, bullet -> 4;
-			case blitz -> 5;
-			case rapid -> 6;
-			case classical -> 7;
-			case correspondence -> 8;
-		};
-		System.out.println("Using search depth " + searchDepth);
 
-		MovePicker engine = new FasterAlphaBetaSearch(heuristic, searchDepth);
-
-		GameSession gameSession = GameSession.fromGameInfo(game, client.bot(), engine);
+		GameSession gameSession = GameSession.fromGameInfo(game, client.bot());
 		gameSession.chat("good luck");
 		gameSession.playGame();
 	}
