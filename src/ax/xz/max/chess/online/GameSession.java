@@ -7,6 +7,9 @@ import ax.xz.max.chess.moves.PlayerMove;
 import chariot.api.BotAuth;
 import chariot.model.*;
 
+import java.time.Duration;
+import java.time.Instant;
+
 class GameSession {
 	private final String gameId;
 	private final BotAuth bot;
@@ -44,7 +47,6 @@ class GameSession {
 	}
 
 	private void handleGameEvent(GameStateEvent event) {
-		System.out.println("Game event: " + event);
 		switch (event) {
 			case GameStateEvent.Chat chat -> System.out.println("(Chat) " + chat.username() + ": " + chat.text());
 			case GameStateEvent.OpponentGone _ -> System.out.println("Opponent gone");
@@ -60,10 +62,14 @@ class GameSession {
 	}
 
 	private void handleGameState(GameStateEvent.State state) {
+		Thread.ofVirtual().start(() -> handleGameState0(state));
+	}
+
+	private void handleGameState0(GameStateEvent.State state) {
 		try {
-			System.out.println("Game state: " + state);
 			if (state.status().ordinal() > Enums.Status.started.ordinal()) {
 				System.out.println("Game over");
+				chat("Good game!");
 				return;
 			}
 
@@ -79,13 +85,15 @@ class GameSession {
 
 			boolean movesFirst = player == startingBoard.currentTurn();
 			boolean evenMoves = moveList.size() % 2 == 0;
-			if (movesFirst == evenMoves) return; // not our turn
+			if (movesFirst != evenMoves) return; // not our turn
 
 			Board board = startingBoard.copy();
 			for (String move : moveList)
 				board.makeMove(board.fromUCI(move));
 
+			Instant start = Instant.now();
 			var move = movePicker.chooseNextMove(board);
+			System.out.println("Move picked in " + Duration.between(start, Instant.now()).toMillis() + "ms: " + move.toUCI());
 			sendMove(move);
 		} catch (Exception e) {
 			System.err.println("Error in game " + gameId);

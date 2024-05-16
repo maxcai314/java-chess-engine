@@ -69,10 +69,12 @@ public class LichessBotServer {
 			case classical -> 7;
 			case correspondence -> 8;
 		};
+		System.out.println("Using search depth " + searchDepth);
 
 		MovePicker engine = new FasterAlphaBetaSearch(heuristic, searchDepth);
 
 		GameSession gameSession = GameSession.fromGameInfo(game, client.bot(), engine);
+		gameSession.chat("good luck");
 		gameSession.playGame();
 	}
 }
