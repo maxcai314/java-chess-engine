@@ -5,13 +5,12 @@ import chariot.Client.*;
 import chariot.model.*;
 
 import java.net.URI;
-import java.util.*;
 import java.util.prefs.Preferences;
 
 /**
  * Code from tors42 for connecting to Lichess API
  */
-record ClientProfile(ClientAuth client, UserAuth profile) {
+public record ClientProfile(ClientAuth client, UserAuth profile) {
 	
 	static ClientProfile initialize() {
 		var client  = initializeClient();
