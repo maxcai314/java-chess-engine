@@ -210,8 +210,14 @@ public class PieceMapEvaluator implements BoardEvaluator {
 	}
 
 	private static double mobilityReward(Board board) {
-		return board.getLegalMoves(Player.WHITE).stream().map(PieceMapEvaluator::moveReward).reduce(0.0, Double::sum)
-				- board.getLegalMoves(Player.BLACK).stream().map(PieceMapEvaluator::moveReward).reduce(0.0, Double::sum);
+		double total = 0;
+		for (var move : board.getLegalMoves(Player.WHITE))
+			total += moveReward(move);
+
+		for (var move : board.getLegalMoves(Player.BLACK))
+			total -= moveReward(move);
+
+		return total;
 	}
 
 	private static double moveReward(PlayerMove move) {
