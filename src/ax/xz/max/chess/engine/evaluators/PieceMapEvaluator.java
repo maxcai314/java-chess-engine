@@ -221,7 +221,7 @@ public class PieceMapEvaluator implements BoardEvaluator {
 	}
 
 	private static double moveReward(PlayerMove move) {
-		double total = 0.005;
+		double total = 0.004;
 		total += switch(move) {
 			case Castle __ -> 0.005;
 			case Promotion __ -> 0.02;
@@ -230,7 +230,6 @@ public class PieceMapEvaluator implements BoardEvaluator {
 		total += switch (move.piece().type()) {
 			case KNIGHT, BISHOP -> 0.001;
 			case ROOK -> 0.001;
-			case QUEEN -> 0.001;
 			default -> 0;
 		};
 		return total;
