@@ -26,17 +26,26 @@ public class PieceMapEvaluator implements BoardEvaluator {
 
 	/** should be added to the evaluation */
 	private static double materialReward(Board board) {
-		double total = 0;
 		boolean isEndGame = isEndgame(board);
-		for (var player : Player.values()) {
-			for (var type : PieceType.values()) {
-				var piece = new Piece(player, type);
-				for (var position : board.boardState().board().allOf(piece)) {
-					total += valueOf(position, piece, isEndGame);
-				}
+		double whiteMaterial = 0;
+		double blackMaterial = 0;
+		for (var type : PieceType.values()) {
+			var whitePiece = new Piece(Player.WHITE, type);
+			for (var position : board.boardState().board().allOf(whitePiece)) {
+				whiteMaterial += valueOf(position, whitePiece, isEndGame);
+			}
+
+			var blackPiece = new Piece(Player.BLACK, type);
+			for (var position : board.boardState().board().allOf(blackPiece)) {
+				blackMaterial += valueOf(position, blackPiece, isEndGame);
 			}
 		}
-		return total;
+
+		double total = whiteMaterial + blackMaterial;
+		double netMaterial = whiteMaterial - blackMaterial;
+
+		double scaleFactor = 1 + Math.exp(-0.1 * total);
+		return scaleFactor * netMaterial;
 	}
 
 	private static final List<List<Double>> whitePawnValue = List.of(
@@ -128,7 +137,7 @@ public class PieceMapEvaluator implements BoardEvaluator {
 				case KING -> isEndGame ? 0 : whiteKingValue.get(coordinate.rank()).get(coordinate.file());
 			};
 
-			case BLACK -> -1 * switch (piece.type()) {
+			case BLACK -> switch (piece.type()) {
 				case PAWN -> blackPawnValue.get(coordinate.rank()).get(coordinate.file());
 				case KNIGHT -> blackKnightValue.get(coordinate.rank()).get(coordinate.file());
 				case BISHOP -> blackBishopValue.get(coordinate.rank()).get(coordinate.file());
@@ -191,8 +200,8 @@ public class PieceMapEvaluator implements BoardEvaluator {
 		int count = 0;
 		for (int file = 0; file < 8; file++) {
 			if (numPawnsPerFile[file] == 0) continue;
-			if (file > 0 && numPawnsPerFile[file - 1] == 0) continue;
-			if (file < 7 && numPawnsPerFile[file + 1] == 0) continue;
+			if (file > 0 && numPawnsPerFile[file - 1] != 0) continue;
+			if (file < 7 && numPawnsPerFile[file + 1] != 0) continue;
 			count += numPawnsPerFile[file];
 			file++; // the next file cannot be isolated if this one is
 		}
